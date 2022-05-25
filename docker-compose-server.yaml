@@ -1,0 +1,162 @@
+version: '3'
+services:
+  rabbitmq:
+    container_name: rabbitmq
+    build:
+      context: ./rabbitmq
+      dockerfile: rabbitmq.dockerfile
+    ports:
+      - 15672:15672
+    networks:
+      - tp2_net
+    volumes:
+      - ./rabbitmq/config.conf:/etc/rabbitmq/rabbitmq.conf:ro
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:15672"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  mom-admin:
+    build:
+      context: ./
+      dockerfile: ./server/common/message_middleware/Dockerfile
+    container_name: mom-admin
+    entrypoint: /admin
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links: 
+      - rabbitmq
+    networks:
+      - tp2_net
+
+  admin:
+    build:
+      context: ./
+      dockerfile: ./server/admin/Dockerfile
+    container_name: admin
+    entrypoint: /admin
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links: 
+      - rabbitmq
+    volumes:
+      - ./config.json:/config.json
+    networks:
+      - tp2_net
+   
+  post-digestor1:
+    build:
+      context: ./
+      dockerfile: ./server/post_digestor/Dockerfile
+    container_name: post-digestor1
+    entrypoint: /post_digestor
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links: 
+      - rabbitmq
+    environment:
+      - ID=0
+      - LOAD_BALANCE=0
+      - PROCESS_GROUP=post_digestor
+    volumes:
+      - ./config.json:/config.json
+    networks:
+      - tp2_net
+  
+  post-digestor2:
+    build:
+      context: ./
+      dockerfile: ./server/post_digestor/Dockerfile
+    container_name: post-digestor2
+    entrypoint: /post_digestor
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links: 
+      - rabbitmq
+    environment:
+      - ID=1
+      - LOAD_BALANCE=0
+      - PROCESS_GROUP=post_digestor
+    volumes:
+      - ./config.json:/config.json
+    networks:
+      - tp2_net
+  
+  post-score-adder1:
+    build:
+      context: ./
+      dockerfile: ./server/post_score_adder/Dockerfile
+    container_name: post-score-adder1
+    entrypoint: /post_score_adder
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links: 
+      - rabbitmq
+    environment:
+      - ID=0
+      - PROCESS_GROUP=post_score_adder
+    volumes:
+      - ./config.json:/config.json
+    networks:
+      - tp2_net
+  
+  post-score-adder2:
+    build:
+      context: ./
+      dockerfile: ./server/post_score_adder/Dockerfile
+    container_name: post-score-adder2
+    entrypoint: /post_score_adder
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links: 
+      - rabbitmq
+    environment:
+      - ID=1
+      - PROCESS_GROUP=post_score_adder
+    volumes:
+      - ./config.json:/config.json
+    networks:
+      - tp2_net
+
+
+  post-score-avg-calculator:
+    build:
+      context: ./
+      dockerfile: ./server/post_score_avg_calculator/Dockerfile
+    container_name: post-score-avg-calculator
+    entrypoint: /calculator
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links: 
+      - rabbitmq
+    environment:
+      - ID=0
+      - PROCESS_GROUP=post_score_avg_calculator
+    volumes:
+      - ./config.json:/config.json
+    networks:
+      - tp2_net
+
+networks:
+  tp2_net:
+    name: "tp2_net"
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.25.125.0/24

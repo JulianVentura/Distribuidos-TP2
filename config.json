@@ -1,0 +1,94 @@
+{
+    "general": {
+        "mom_address": "amqp://rabbitmq"
+    },
+    "admin": {
+        "server_address": "admin:12345",
+        "log_level": "info",
+        "queues": {
+            "posts": {
+                "name": "posts_q",
+                "class": "worker",
+                "direction": "write"
+            },
+            "comments": {
+                "name": "comments_q",
+                "class": "worker",
+                "direction": "write"
+            },
+            "average_result": {
+                "name": "",
+                "class": "fanout",
+                "topic": "",
+                "source": "post_score_avg_result",
+                "direction": "read"
+            },
+            "best_sent_meme_result": {
+                "name": "best_sent_meme_result",
+                "class": "work",
+                "topic": "",
+                "source": "",
+                "direction": "read"
+            },
+            "best_school_memes_result": {
+                "name": "best_school_memes_result",
+                "class": "work",
+                "topic": "",
+                "source": "",
+                "direction": "read"
+            }
+        }
+    },
+    "post_digestor": {
+        "log_level": "info",
+        "previous_stage_finished": "post_stream_end",
+        "stage_finished": "post_digestor_end",
+        "queues": {
+            "input": {
+                "name": "posts_q",
+                "class": "worker",
+                "direction": "read"
+            },
+            "result": {
+                "name": "post_digestor_result",
+                "class": "topic",
+                "direction": "write"
+            }
+        }
+    },
+    "post_score_adder": {
+        "log_level": "info",
+        "queues": {
+            "input": {
+                "name": "post_score_adder",
+                "class": "worker",
+                "topic": "#",
+                "source": "post_digestor_result",
+                "direction": "read"
+            },
+            "result": {
+                "name": "post_score_adder_result",
+                "class": "worker",
+                "direction": "write"
+            }
+        }
+    },
+    "post_score_avg_calculator": {
+        "log_level": "info",
+        "queues": {
+            "input": {
+                "name": "post_score_adder_result",
+                "class": "worker",
+                "direction": "read"
+            },
+            "result": {
+                "name": "post_score_avg_result",
+                "class": "fanout",
+                "direction": "write"
+            }
+        },
+        "previous_stage_finished": "post_score_adder_end",
+        "stage_finished": "post_score_avg_end",
+        "quit_signal": "quit"
+    }
+}

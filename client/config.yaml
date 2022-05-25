@@ -1,0 +1,14 @@
+# id: 1
+server:
+  address: "admin:12345"
+
+loop-period: 
+  post: "1us"
+  comment: "100ms"
+
+files-path:
+  post: "./files/posts_small.csv"
+  comment: "./files/comments_small.csv"
+
+log:
+  level: "info"

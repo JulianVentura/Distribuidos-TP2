@@ -1,0 +1,24 @@
+version: '3'
+services:
+  client:
+    container_name: client
+    build:
+      context: .
+      dockerfile: ./client/Dockerfile
+    entrypoint: /client
+    volumes:
+      - type: bind 
+        source: ./client/config.yaml
+        target: /config.yaml
+      - type: bind 
+        source: ./client/files
+        target: /files
+    environment:
+      - ID=1
+    networks:
+      - tp2_net
+
+networks:
+  tp2_net:
+    external:
+      name: tp2_net
