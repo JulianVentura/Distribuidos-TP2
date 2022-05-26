@@ -24,10 +24,8 @@
                 "direction": "read"
             },
             "best_sent_meme_result": {
-                "name": "best_sent_meme_result",
-                "class": "work",
-                "topic": "",
-                "source": "",
+                "name": "best_sentiment_avg_downloader_result",
+                "class": "worker",
                 "direction": "read"
             },
             "best_school_memes_result": {
@@ -90,5 +88,141 @@
         "previous_stage_finished": "post_score_adder_end",
         "stage_finished": "post_score_avg_end",
         "quit_signal": "quit"
+    },
+    "post_above_avg_filter": {
+        "log_level": "info",
+        "queues": {
+            "input_avg": {
+                "name": "",
+                "class": "fanout",
+                "topic": "",
+                "source": "post_score_avg_result",
+                "direction": "read"
+            },
+            "input_post": {
+                "name": "post_above_avg_filter",
+                "class": "worker",
+                "topic": "#",
+                "source": "post_digestor_result",
+                "direction": "read"
+            },
+            "result": {
+                "name": "post_above_avg_filter_result",
+                "class": "topic",
+                "direction": "write"
+            }
+        }
+    },
+    "comment_digestor": {
+        "log_level": "info",
+        "queues": {
+            "input": {
+                "name": "comments_q",
+                "class": "worker",
+                "direction": "read"
+            },
+            "result": {
+                "name": "comment_digestor_result",
+                "class": "topic",
+                "direction": "write"
+            }
+        }
+    },
+    "post_sentiment_avg_calculator": {
+        "log_level": "info",
+        "queues": {
+            "input": {
+                "name": "",
+                "class": "worker",
+                "topic": "comment_digestor_result.{id}",
+                "source": "comment_digestor_result",
+                "direction": "read"
+            },
+            "result": {
+                "name": "post_sentiment_avg_calculator_result",
+                "class": "topic",
+                "direction": "write"
+            }
+        }
+    },
+    "sentiment_joiner": {
+        "log_level": "info",
+        "queues": {
+            "base_input": {
+                "name": "",
+                "class": "worker",
+                "topic": "post_digestor_result.{id}",
+                "source": "post_digestor_result",
+                "direction": "read"
+            },
+            "join_input": {
+                "name": "",
+                "class": "worker",
+                "topic": "post_sentiment_avg_calculator_result.{id}",
+                "source": "post_sentiment_avg_calculator_result",
+                "direction": "read"
+            },
+            "result": {
+                "name": "sentiment_joiner_result",
+                "class": "worker",
+                "direction": "write"
+            }
+        }
+    },
+    "student_joiner": {
+        "log_level": "info",
+        "queues": {
+            "base_input": {
+                "name": "",
+                "class": "worker",
+                "topic": "post_above_avg_filter_result.{id}",
+                "source": "post_above_avg_filter_result",
+                "direction": "read"
+            },
+            "join_input": {
+                "name": "",
+                "class": "worker",
+                "topic": "student_comment_filter_result.{id}",
+                "source": "student_comment_filter_result",
+                "direction": "read"
+            },
+            "result": {
+                "name": "student_joiner_result",
+                "class": "worker",
+                "direction": "write"
+            }
+        }
+    },
+    "student_comment_filter": {
+        "log_level": "info",
+        "queues": {
+            "input": {
+                "name": "student_comment_filter",
+                "class": "worker",
+                "topic": "#",
+                "source": "comment_digestor_result",
+                "direction": "read"
+            },
+            "result": {
+                "name": "student_comment_filter_result",
+                "class": "topic",
+                "direction": "write"
+            }
+        }
+    },
+    "best_sentiment_avg_downloader": {
+        "log_level": "info",
+        "queues": {
+            "input": {
+                "name": "sentiment_joiner_result",
+                "class": "worker",
+                "direction": "read"
+            },
+            "result": {
+                "name": "best_sentiment_avg_downloader_result",
+                "class": "worker",
+                "direction": "write"
+            }
+        }
     }
 }

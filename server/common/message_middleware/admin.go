@@ -94,12 +94,16 @@ func (self *MiddlewareAdmin) handle_new_write_queue(queue_config string) {
 	//Introducir en table, con el callback
 	self.table.Add_new_writer(q_config.Name, func(reader_count uint) {
 		log.Debugf("Callback of %v has been called for %v readers", q_config.Name, reader_count)
-		for i := uint(0); i < reader_count; i++ {
-			queue <- mom.Message{
-				Topic: "finish",
-				Body:  "finish",
-			}
+		queue <- mom.Message{
+			Topic: "finish",
+			Body:  "finish",
 		}
+		// for i := uint(0); i < reader_count; i++ {
+		// 	queue <- mom.Message{
+		// 		Topic: "finish",
+		// 		Body:  "finish",
+		// 	}
+		// }
 	})
 }
 

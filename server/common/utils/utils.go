@@ -117,3 +117,11 @@ func Init_queues(msg_middleware *mom.MessageMiddleware, config map[string]mom.Qu
 
 	return queues, nil
 }
+
+func Expand_queues_topic(queues map[string]mom.QueueConfig, id uint) {
+	id_s := fmt.Sprintf("%v", id)
+	for name, queue := range queues {
+		queue.Topic = strings.Replace(queue.Topic, "{id}", id_s, 1)
+		queues[name] = queue
+	}
+}

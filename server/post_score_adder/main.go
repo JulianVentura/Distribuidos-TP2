@@ -49,7 +49,7 @@ func main() {
 		log.Fatalf("Couldn't connect to mom: %v", err)
 	}
 	// - Callback definition
-	adder := PostScoreAdder{}
+	adder := NewCalculator()
 
 	// - Create and run the consumer
 	q := consumer.ConsumerQueues{Input: queues["input"]}

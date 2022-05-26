@@ -13,6 +13,13 @@ type PostScoreAvgCalculator struct {
 	Counter int64
 }
 
+func NewCalculator() PostScoreAvgCalculator {
+	return PostScoreAvgCalculator{
+		Sum:     0,
+		Counter: 0,
+	}
+}
+
 func (self *PostScoreAvgCalculator) add(input string) {
 	log.Debugf("Received: %v", input)
 
@@ -37,7 +44,7 @@ func test_function() {
 		"145642,2228",
 	}
 
-	adder := PostScoreAvgCalculator{}
+	adder := NewCalculator()
 
 	work := adder.add
 

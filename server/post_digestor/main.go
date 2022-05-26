@@ -11,31 +11,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func create_callback(
-	config *worker.WorkerConfiguration,
-	callback func(string) (string, error),
-	result_q chan mom.Message) func(string) {
-
-	if config.Load_balance > 0 {
-		result_topic := fmt.Sprintf("%v_result", config.Process_group)
-		return func(msg string) {
-			result, err := callback(msg)
-			if err == nil {
-				utils.Balance_load_send(result_q, result_topic, config.Load_balance, result)
-			}
-		}
-	} else {
-		return func(msg string) {
-			result, err := callback(msg)
-			if err == nil {
-				result_q <- mom.Message{
-					Body: result,
-				}
-			}
-		}
-	}
-}
-
 func main() {
 
 	// - Definir señal de quit
@@ -75,7 +50,7 @@ func main() {
 		log.Fatalf("Couldn't connect to mom: %v", err)
 	}
 	// - Callback definition
-	callback := create_callback(&config, work_callback(), queues["result"])
+	callback := worker.Create_callback(&config, work_callback(), queues["result"])
 
 	// - Create and run the consumer
 	q := consumer.ConsumerQueues{Input: queues["input"]}

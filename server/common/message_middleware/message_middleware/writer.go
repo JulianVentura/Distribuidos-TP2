@@ -16,6 +16,7 @@ type WriteWorker struct {
 	input              chan Message
 	output             *amqp.Channel
 	notify_on_finish   bool
+	quit               chan bool
 	finished           sync.WaitGroup
 }
 
@@ -35,6 +36,7 @@ func writer_worker(
 		routing_key:        routing_key,
 		input:              input,
 		output:             output,
+		quit:               make(chan bool, 2),
 		notify_on_finish:   notify_on_finish,
 	}
 
@@ -46,24 +48,52 @@ func writer_worker(
 }
 
 func (self *WriteWorker) finish() {
-	if self.input != nil {
-		close(self.input)
-		self.input = nil
-	}
+	// if self.input != nil {
+	// 	close(self.input)
+	// 	self.input = nil
+	// }
+	self.quit <- true
 	self.finished.Wait()
 }
 
 func (self *WriteWorker) run() {
 
-	for msg := range self.input {
-		if err := self.send_message(msg); err != nil {
-			return
+Loop:
+	for {
+		select {
+		case msg, more := <-self.input:
+			if !more {
+				break Loop
+			}
+			if err := self.send_message(msg); err != nil {
+				log.Errorf("Error sending message on writer of %v", self.queue_name)
+				return
+			}
+		case <-self.quit:
+			self.send_last_messages()
+			break Loop
 		}
 	}
+
 	log.Debugf("Writer of queue %v finishing", self.queue_name)
-	self.input = nil
 	self.notify_finish()
 	self.finished.Done()
+}
+
+func (self *WriteWorker) send_last_messages() {
+
+Loop:
+	for {
+		select {
+		case msg := <-self.input:
+			if err := self.send_message(msg); err != nil {
+				log.Errorf("Error sending message on writer of %v", self.queue_name)
+				return
+			}
+		default:
+			break Loop
+		}
+	}
 }
 
 func (self *WriteWorker) notify_finish() {

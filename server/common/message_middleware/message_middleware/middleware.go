@@ -112,8 +112,8 @@ func (self *MessageMiddleware) create_read_worker_queue(config *QueueConfig) (ch
 	var queue_origin string
 
 	if len(config.Topic) > 0 {
-		if len(config.Name) < 1 || len(config.Source) < 1 {
-			return nil, fmt.Errorf("Error trying to create a read worker queue: name or source not provided")
+		if len(config.Source) < 1 {
+			return nil, fmt.Errorf("Error trying to create a read worker queue: source not provided")
 		}
 		q_channel, err = self.initialize_queue_and_exchange(
 			config.Source,
@@ -197,12 +197,20 @@ func read_worker(input <-chan amqp.Delivery, output chan Message) {
 	for msg := range input {
 		body := string(msg.Body)
 		if body == "finish" {
+			err := msg.Nack(false, true)
+			if err != nil {
+				log.Debugf("Error making Nack of message")
+			}
 			log.Debugf("Reader has found finish message, closing...")
 			close(output)
 			return
 		}
+		err := msg.Ack(false)
+		if err != nil {
+			log.Errorf("Failed to ack message")
+		}
 		output <- Message{
-			Body:  body, //TODO: Ver si no hay alguna forma de especificar encoding
+			Body:  body,
 			Topic: msg.RoutingKey,
 		}
 	}
@@ -225,12 +233,12 @@ func (self *MessageMiddleware) initialize_queue_and_exchange(
 		return nil, Err.Ctx("Couldn't declare the queue", err)
 	}
 	//Bind the queue to the exchange
-	err = self.queue_bind(queue_name, queue_topic, exchange_name)
+	err = self.queue_bind(queue.Name, queue_topic, exchange_name)
 	if err != nil {
 		return nil, Err.Ctx("Couldn't bind queue to exchange", err)
 	}
 	//Bind the queue to the admin "finish" topic
-	err = self.queue_bind(queue_name, "finish", exchange_name)
+	err = self.queue_bind(queue.Name, "finish", exchange_name)
 	if err != nil {
 		return nil, Err.Ctx("Couldn't bind queue to exchange, with topic finish", err)
 	}
@@ -279,7 +287,7 @@ func (self *MessageMiddleware) consume_queue(name string) (<-chan amqp.Delivery,
 	return self.channel.Consume(
 		name,  // queue
 		"",    // consumer
-		true,  // auto-ack
+		false, // auto-ack
 		false, // exclusive
 		false, // no-local
 		false, // no-wait
@@ -430,6 +438,10 @@ func (self *MessageMiddleware) notify_new_read_queue_to_admin(queue_origin strin
 
 	//TODO: Cambiar el nombre de la variable a algo que tenga más sentido
 	//Lo que estamos haciendo acá es no enviar el mensaje si se trata del admin
+	if true { //Change
+		return nil
+	}
+
 	if !self.notify_on_finish {
 		return nil
 	}

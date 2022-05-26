@@ -27,15 +27,16 @@ type AdminQueues struct {
 	Posts          chan mom.Message
 	Comments       chan mom.Message
 	Average_result chan mom.Message
+	Best_meme      chan mom.Message
 }
 
 type Admin struct {
 	queues               AdminQueues
 	config               AdminConfig
 	skt                  *socket.ServerSocket
+	mutex                sync.Mutex
 	computation_finished chan bool
 	quit                 chan bool
-	finished             sync.WaitGroup
 }
 
 func New(
@@ -53,42 +54,40 @@ func New(
 		queues:               queues,
 		config:               config,
 		skt:                  &skt,
+		mutex:                sync.Mutex{},
 		computation_finished: make(chan bool, 2),
 		quit:                 quit,
 	}
 
-	//self.warmup_wait()
+	go func() {
+		<-self.quit
+		self.quit <- true
+		self.close_server()
+	}()
 
 	return self, nil
 }
 
-func (self *Admin) Finish() {
+func (self *Admin) close_server() {
+	self.mutex.Lock()
 	if self.skt != nil {
 		_ = self.skt.Close()
 		self.skt = nil
 	}
-	self.quit <- true
-	self.finished.Wait()
+	self.mutex.Unlock()
+}
+
+func (self *Admin) finish() {
+	log.Infof("Shuting down Server Admin")
+	self.close_server()
 }
 
 func (self *Admin) Run() {
-	self.finished.Add(1)
-	go self.client_worker()
-
 	log.Infof("Server Admin started")
-	<-self.quit
-	log.Infof("Shuting down Server Admin")
-	self.Finish()
+	self.client_worker()
 }
 
 func (self *Admin) client_worker() {
-
-	//We must free resources at finish
-	defer func() {
-		log.Debugf("Client worker has finished")
-		self.finished.Done()
-		self.Finish()
-	}()
 
 	//Esperar por un nuevo cliente
 	client, err := self.wait_for_new_client()
@@ -103,6 +102,7 @@ func (self *Admin) client_worker() {
 	//Recibir el stream de datos
 	err = self.receive_stream_from_client(client) //Problema: Si enviamos quit y no hay datos, nos bloqueamos
 	if err != nil {
+		log.Errorf("Error receiving stream from client: %v", err)
 		return
 	}
 	//Esperar a que finalice el cómputo de datos
@@ -120,11 +120,11 @@ func (self *Admin) client_worker() {
 }
 
 func (self *Admin) wait_for_new_client() (*socket.TCPConnection, error) {
+
+	defer self.close_server()
+
 	log.Infof("Waiting for client arrival")
 	skt, err := self.skt.Accept()
-
-	_ = self.skt.Close()
-	self.skt = nil
 
 	if err != nil {
 		return nil, err
@@ -134,11 +134,13 @@ func (self *Admin) wait_for_new_client() (*socket.TCPConnection, error) {
 }
 
 func (self *Admin) send_results_to_client(client *socket.TCPConnection) error {
-	log.Debugf("Sending results to client")
+	log.Infof("Sending results to client")
 	//Get computation results
-	msg := <-self.queues.Average_result
-	log.Infof("Resultado de AVG: %v", msg.Body)
-	avg, err := strconv.ParseFloat(msg.Body, 64)
+	avg_r_msg := <-self.queues.Average_result
+	log.Infof("AVG Result: %v", avg_r_msg.Body)
+	best_meme_msg := <-self.queues.Best_meme
+	log.Infof("Best Meme: %v", best_meme_msg.Body)
+	avg, err := strconv.ParseFloat(avg_r_msg.Body, 64)
 	if err != nil {
 		//TODO: Ver si devolvemos error al cliente
 		return fmt.Errorf("Critical error, couldn't parse average result")
@@ -146,7 +148,8 @@ func (self *Admin) send_results_to_client(client *socket.TCPConnection) error {
 
 	//Send results to client
 	protocol.Send(client, &protocol.Response{
-		Post_score_average: avg,
+		Post_score_average:  avg,
+		Best_sentiment_meme: best_meme_msg.Body,
 	})
 
 	return nil
@@ -156,9 +159,10 @@ func (self *Admin) receive_stream_from_client(client *socket.TCPConnection) erro
 	log.Debugf("Receiving streams from client")
 	//Recibir un mensaje del cliente, parsearlo, encolarlo en la cola adecuada, repetir
 	post_stream_finished := false
-	comment_stream_finished := true
+	comment_stream_finished := false
 
 	posts_received := 0
+	comments_received := 0
 Loop:
 	for {
 		select {
@@ -177,7 +181,7 @@ Loop:
 			}
 			switch m := message.(type) {
 			case *protocol.Post:
-				log.Debugf("Received post: %v", m.Post)
+				// log.Debugf("Received post: %v", m.Post)
 				self.queues.Posts <- mom.Message{Body: m.Post}
 				posts_received += 1
 				if posts_received%10000 == 0 {
@@ -185,9 +189,13 @@ Loop:
 				}
 			case *protocol.Comment:
 				log.Debugf("Received comment: %v", m.Comment)
+				comments_received += 1
+				if comments_received%10000 == 0 {
+					log.Infof("Se recibieron %v comments", comments_received)
+				}
 				self.queues.Comments <- mom.Message{Body: m.Comment}
 			case *protocol.PostFinished:
-				log.Infof("Client post stream has finished")
+				log.Infof("Client poststream has finished")
 				close(self.queues.Posts)
 				post_stream_finished = true
 			case *protocol.CommentFinished:
@@ -202,7 +210,7 @@ Loop:
 		}
 	}
 
-	log.Debugf("Client stream has finished")
+	log.Infof("Client stream has finished")
 
 	return nil
 }

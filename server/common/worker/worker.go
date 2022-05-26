@@ -127,3 +127,28 @@ func Notify_finish(config *WorkerConfiguration, control_q chan mom.Message) {
 		Topic: fmt.Sprintf("stage_finished.%v.%v", config.Process_group, config.Id),
 	}
 }
+
+func Create_callback(
+	config *WorkerConfiguration,
+	callback func(string) (string, error),
+	result_q chan mom.Message) func(string) {
+
+	if config.Load_balance > 0 {
+		result_topic := fmt.Sprintf("%v_result", config.Process_group)
+		return func(msg string) {
+			result, err := callback(msg)
+			if err == nil {
+				utils.Balance_load_send(result_q, result_topic, config.Load_balance, result)
+			}
+		}
+	} else {
+		return func(msg string) {
+			result, err := callback(msg)
+			if err == nil {
+				result_q <- mom.Message{
+					Body: result,
+				}
+			}
+		}
+	}
+}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 
 	"distribuidos/tp2/server/common/consumer"
 	mom "distribuidos/tp2/server/common/message_middleware/message_middleware"
@@ -16,7 +17,8 @@ func main() {
 	quit := utils.Start_quit_signal()
 	// - Definimos lista de colas
 	queues_list := []string{
-		"input",
+		"input_avg",
+		"input_post",
 		"result",
 	}
 
@@ -48,22 +50,24 @@ func main() {
 	if err != nil {
 		log.Fatalf("Couldn't connect to mom: %v", err)
 	}
-	// - Callback definition
-	calculator := NewCalculator()
 
+	//- Wait for avg result
+	avg_result := <-queues["input_avg"]
+	log.Debugf("AVG: %v", avg_result.Body)
+
+	avg, err := strconv.ParseFloat(avg_result.Body, 64)
+	if err != nil {
+		log.Fatalf("Post AVG value %v is not a number: %v", avg_result.Body, err)
+	}
+	// - Callback definition
+	calculator := NewFilter(avg)
+	callback := worker.Create_callback(&config, calculator.work, queues["result"])
 	// - Create and run the consumer
-	q := consumer.ConsumerQueues{Input: queues["input"]}
-	consumer, err := consumer.New(calculator.add, q, quit)
+	q := consumer.ConsumerQueues{Input: queues["input_post"]}
+	consumer, err := consumer.New(callback, q, quit)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
+
 	consumer.Run()
-
-	result := calculator.get_result()
-	log.Infof("AVG: %v", result)
-
-	//- Send the result into result queue
-	queues["result"] <- mom.Message{
-		Body: calculator.get_result(),
-	}
 }

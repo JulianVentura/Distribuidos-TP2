@@ -13,16 +13,9 @@ func parametrized_work(
 	post_id_regex *regexp.Regexp,
 	meme_url_regex *regexp.Regexp,
 	post_score_regex *regexp.Regexp,
-	memo map[string]bool,
 ) (string, error) {
 
 	log.Debugf("Received: %v", input)
-	_, exists := memo[input]
-	if exists {
-		log.Infof("Repeated: %v", input)
-	} else {
-		memo[input] = true
-	}
 
 	post_id_idx := 2
 	post_meme_idx := 9
@@ -38,13 +31,13 @@ func parametrized_work(
 	post_meme := splits[post_meme_idx]
 	post_score := splits[post_score_idx]
 
-	ok := true
-	ok = ok && post_id_regex.MatchString(post_id)
-	ok = ok && meme_url_regex.MatchString(post_meme)
-	ok = ok && post_score_regex.MatchString(post_score)
-	if !ok {
-		return "", fmt.Errorf("invalid input")
-	}
+	// ok := true
+	// ok = ok && post_id_regex.MatchString(post_id)
+	// ok = ok && meme_url_regex.MatchString(post_meme)
+	// ok = ok && post_score_regex.MatchString(post_score)
+	// if !ok {
+	// 	return "", fmt.Errorf("invalid input")
+	// }
 
 	output := []string{post_id, post_meme, post_score}
 
@@ -77,8 +70,7 @@ func generate_regex() (*regexp.Regexp, *regexp.Regexp, *regexp.Regexp) {
 
 func work_callback() func(string) (string, error) {
 	a, b, c := generate_regex()
-	memo := make(map[string]bool)
-	return func(input string) (string, error) { return parametrized_work(input, a, b, c, memo) }
+	return func(input string) (string, error) { return parametrized_work(input, a, b, c) }
 }
 
 func test_function() {

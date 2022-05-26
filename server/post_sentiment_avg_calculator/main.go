@@ -31,10 +31,13 @@ func main() {
 	if err := worker.Init_logger(config.Log_level); err != nil {
 		log.Fatalf("%s", err)
 	}
-	log.Info("Starting Post Score Avg Calculator...")
+	log.Info("Starting Post Sentiment AVG Calculator...")
+
+	//Expand the queues topic with process id
+	utils.Expand_queues_topic(config.Queues, config.Id)
 
 	//- Print config
-	worker.Print_config(&config, "Post Score Avg Calculator")
+	worker.Print_config(&config, "Post Sentiment AVG Calculator")
 
 	// - Mom initialization
 	msg_middleware, err := mom.Start(config.Mom_address, true)
@@ -44,6 +47,7 @@ func main() {
 
 	defer msg_middleware.Finish()
 	// - Queues initialization
+
 	queues, err := utils.Init_queues(msg_middleware, config.Queues)
 	if err != nil {
 		log.Fatalf("Couldn't connect to mom: %v", err)
@@ -59,11 +63,13 @@ func main() {
 	}
 	consumer.Run()
 
-	result := calculator.get_result()
-	log.Infof("AVG: %v", result)
-
 	//- Send the result into result queue
-	queues["result"] <- mom.Message{
-		Body: calculator.get_result(),
+	result := calculator.get_result()
+
+	out := queues["result"]
+	result_topic := fmt.Sprintf("%v_result", config.Process_group)
+
+	for _, r := range result {
+		utils.Balance_load_send(out, result_topic, config.Load_balance, r)
 	}
 }

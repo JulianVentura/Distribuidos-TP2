@@ -89,6 +89,7 @@ func init_config() (admin.AdminConfig, map[string]mom.QueueConfig, error) {
 		"posts",
 		"comments",
 		"average_result",
+		"best_sent_meme_result",
 	}
 
 	queues_config, err := utils.Parse_queues_config(admin_data, queues_list)
@@ -141,6 +142,7 @@ func main() {
 		Posts:          queues["posts"],
 		Comments:       queues["comments"],
 		Average_result: queues["average_result"],
+		Best_meme:      queues["best_sent_meme_result"],
 	}
 	admin, err := admin.New(config, admin_q, quit)
 	if err != nil {
@@ -149,5 +151,5 @@ func main() {
 	}
 	admin.Run()
 
-	// log.Infof("Shuting down Server Admin...")
+	log.Infof("Server Admin has been finished...")
 }

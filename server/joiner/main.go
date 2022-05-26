@@ -16,7 +16,8 @@ func main() {
 	quit := utils.Start_quit_signal()
 	// - Definimos lista de colas
 	queues_list := []string{
-		"input",
+		"base_input",
+		"join_input",
 		"result",
 	}
 
@@ -31,10 +32,13 @@ func main() {
 	if err := worker.Init_logger(config.Log_level); err != nil {
 		log.Fatalf("%s", err)
 	}
-	log.Info("Starting Post Score Avg Calculator...")
+	log.Infof("Starting %v...", config.Process_group)
+
+	//Expand the queues topic with process id
+	utils.Expand_queues_topic(config.Queues, config.Id)
 
 	//- Print config
-	worker.Print_config(&config, "Post Score Avg Calculator")
+	worker.Print_config(&config, config.Process_group)
 
 	// - Mom initialization
 	msg_middleware, err := mom.Start(config.Mom_address, true)
@@ -44,26 +48,37 @@ func main() {
 
 	defer msg_middleware.Finish()
 	// - Queues initialization
+
 	queues, err := utils.Init_queues(msg_middleware, config.Queues)
 	if err != nil {
 		log.Fatalf("Couldn't connect to mom: %v", err)
 	}
 	// - Callback definition
-	calculator := NewCalculator()
+	joiner := NewJoiner()
 
-	// - Create and run the consumer
-	q := consumer.ConsumerQueues{Input: queues["input"]}
-	consumer, err := consumer.New(calculator.add, q, quit)
+	// - Create and run the consumer for the post input
+	q_p := consumer.ConsumerQueues{Input: queues["base_input"]}
+	post_consumer, err := consumer.New(joiner.Add, q_p, quit)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	consumer.Run()
+	post_consumer.Run()
 
-	result := calculator.get_result()
-	log.Infof("AVG: %v", result)
-
-	//- Send the result into result queue
-	queues["result"] <- mom.Message{
-		Body: calculator.get_result(),
+	result := queues["result"]
+	callback := func(input string) {
+		r, err := joiner.Join(input)
+		if err == nil {
+			result <- mom.Message{
+				Body: r,
+			}
+		}
 	}
+
+	// - Create and run the consumer for the join input
+	q_s := consumer.ConsumerQueues{Input: queues["join_input"]}
+	sentiment_consumer, err := consumer.New(callback, q_s, quit)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+	sentiment_consumer.Run()
 }

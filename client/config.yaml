@@ -4,7 +4,7 @@ server:
 
 loop-period: 
   post: "1us"
-  comment: "100ms"
+  comment: "1us"
 
 files-path:
   post: "./files/posts_small.csv"

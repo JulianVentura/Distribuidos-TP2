@@ -31,10 +31,10 @@ func main() {
 	if err := worker.Init_logger(config.Log_level); err != nil {
 		log.Fatalf("%s", err)
 	}
-	log.Info("Starting Post Score Avg Calculator...")
+	log.Info("Starting Best Sentiment AVG Downloader...")
 
 	//- Print config
-	worker.Print_config(&config, "Post Score Avg Calculator")
+	worker.Print_config(&config, "Best Sentiment AVG Downloader")
 
 	// - Mom initialization
 	msg_middleware, err := mom.Start(config.Mom_address, true)
@@ -49,21 +49,20 @@ func main() {
 		log.Fatalf("Couldn't connect to mom: %v", err)
 	}
 	// - Callback definition
-	calculator := NewCalculator()
+	downloader := NewDownloader()
 
 	// - Create and run the consumer
 	q := consumer.ConsumerQueues{Input: queues["input"]}
-	consumer, err := consumer.New(calculator.add, q, quit)
+	consumer, err := consumer.New(downloader.work, q, quit)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
 	consumer.Run()
 
-	result := calculator.get_result()
-	log.Infof("AVG: %v", result)
+	result := downloader.get_result()
 
 	//- Send the result into result queue
 	queues["result"] <- mom.Message{
-		Body: calculator.get_result(),
+		Body: result,
 	}
 }

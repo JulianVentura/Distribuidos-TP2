@@ -23,7 +23,7 @@ func main() {
 	// - Config parse
 	config, err := worker.Init_config(queues_list)
 	if err != nil {
-		fmt.Printf("Error on config: %v\n", err)
+		fmt.Printf("Error on config: %v", err)
 		return
 	}
 
@@ -31,10 +31,10 @@ func main() {
 	if err := worker.Init_logger(config.Log_level); err != nil {
 		log.Fatalf("%s", err)
 	}
-	log.Info("Starting Post Score Avg Calculator...")
+	log.Info("Starting Comment Digestor...")
 
 	//- Print config
-	worker.Print_config(&config, "Post Score Avg Calculator")
+	worker.Print_config(&config, "Comment Digestor")
 
 	// - Mom initialization
 	msg_middleware, err := mom.Start(config.Mom_address, true)
@@ -49,21 +49,13 @@ func main() {
 		log.Fatalf("Couldn't connect to mom: %v", err)
 	}
 	// - Callback definition
-	calculator := NewCalculator()
+	callback := worker.Create_callback(&config, work_callback(), queues["result"])
 
 	// - Create and run the consumer
 	q := consumer.ConsumerQueues{Input: queues["input"]}
-	consumer, err := consumer.New(calculator.add, q, quit)
+	consumer, err := consumer.New(callback, q, quit)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
 	consumer.Run()
-
-	result := calculator.get_result()
-	log.Infof("AVG: %v", result)
-
-	//- Send the result into result queue
-	queues["result"] <- mom.Message{
-		Body: calculator.get_result(),
-	}
 }

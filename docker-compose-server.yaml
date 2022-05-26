@@ -4,20 +4,19 @@ services:
     container_name: rabbitmq
     build:
       context: ./rabbitmq
-      dockerfile: rabbitmq.dockerfile
+      dockerfile: ./rabbitmq.dockerfile
     ports:
       - 15672:15672
     networks:
       - tp2_net
     volumes:
       - ./rabbitmq/config.conf:/etc/rabbitmq/rabbitmq.conf:ro
-
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:15672"]
       interval: 5s
       timeout: 3s
       retries: 5
-
+  
   mom-admin:
     build:
       context: ./
@@ -28,11 +27,11 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-    links: 
+    links:
       - rabbitmq
     networks:
       - tp2_net
-
+  
   admin:
     build:
       context: ./
@@ -43,96 +42,56 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-    links: 
+    links:
       - rabbitmq
-    volumes:
-      - ./config.json:/config.json
     networks:
       - tp2_net
-   
-  post-digestor1:
-    build:
-      context: ./
-      dockerfile: ./server/post_digestor/Dockerfile
-    container_name: post-digestor1
-    entrypoint: /post_digestor
-    restart: on-failure
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-    links: 
-      - rabbitmq
+    volumes:
+      - ./config.json:/config.json
     environment:
       - ID=0
-      - LOAD_BALANCE=0
-      - PROCESS_GROUP=post_digestor
-    volumes:
-      - ./config.json:/config.json
-    networks:
-      - tp2_net
   
-  post-digestor2:
-    build:
-      context: ./
-      dockerfile: ./server/post_digestor/Dockerfile
-    container_name: post-digestor2
-    entrypoint: /post_digestor
-    restart: on-failure
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-    links: 
-      - rabbitmq
-    environment:
-      - ID=1
-      - LOAD_BALANCE=0
-      - PROCESS_GROUP=post_digestor
-    volumes:
-      - ./config.json:/config.json
-    networks:
-      - tp2_net
-  
-  post-score-adder1:
+  post-score-adder:
     build:
       context: ./
       dockerfile: ./server/post_score_adder/Dockerfile
-    container_name: post-score-adder1
+    container_name: post-score-adder
     entrypoint: /post_score_adder
     restart: on-failure
     depends_on:
       rabbitmq:
         condition: service_healthy
-    links: 
+    links:
       - rabbitmq
-    environment:
-      - ID=0
-      - PROCESS_GROUP=post_score_adder
-    volumes:
-      - ./config.json:/config.json
     networks:
       - tp2_net
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - PROCESS_GROUP=post_score_adder
+      - ID=0
   
-  post-score-adder2:
+  post-digestor:
     build:
       context: ./
-      dockerfile: ./server/post_score_adder/Dockerfile
-    container_name: post-score-adder2
-    entrypoint: /post_score_adder
+      dockerfile: ./server/post_digestor/Dockerfile
+    container_name: post-digestor
+    entrypoint: /post_digestor
     restart: on-failure
     depends_on:
       rabbitmq:
         condition: service_healthy
-    links: 
+    links:
       - rabbitmq
-    environment:
-      - ID=1
-      - PROCESS_GROUP=post_score_adder
-    volumes:
-      - ./config.json:/config.json
     networks:
       - tp2_net
-
-
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - LOAD_BALANCE=1
+      - PROCESS_GROUP=post_digestor
+      - ID=0
+  
   post-score-avg-calculator:
     build:
       context: ./
@@ -143,16 +102,119 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-    links: 
+    links:
       - rabbitmq
-    environment:
-      - ID=0
-      - PROCESS_GROUP=post_score_avg_calculator
-    volumes:
-      - ./config.json:/config.json
     networks:
       - tp2_net
-
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - PROCESS_GROUP=post_score_avg_calculator
+      - ID=0
+  
+  post-above-avg-filter:
+    build:
+      context: ./
+      dockerfile: ./server/post_above_avg_filter/Dockerfile
+    container_name: post-above-avg-filter
+    entrypoint: /filter
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links:
+      - rabbitmq
+    networks:
+      - tp2_net
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - PROCESS_GROUP=post_above_avg_filter
+      - ID=0
+  
+  best-sentiment-avg-downloader:
+    build:
+      context: ./
+      dockerfile: ./server/best_sentiment_avg_downloader/Dockerfile
+    container_name: best-sentiment-avg-downloader
+    entrypoint: /downloader
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links:
+      - rabbitmq
+    networks:
+      - tp2_net
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - PROCESS_GROUP=best_sentiment_avg_downloader
+      - ID=0
+  
+  sentiment-joiner:
+    build:
+      context: ./
+      dockerfile: ./server/joiner/Dockerfile
+    container_name: sentiment-joiner
+    entrypoint: /joiner
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links:
+      - rabbitmq
+    networks:
+      - tp2_net
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - LOAD_BALANCE=1
+      - PROCESS_GROUP=sentiment_joiner
+      - ID=0
+  
+  comment-digestor:
+    build:
+      context: ./
+      dockerfile: ./server/comment_digestor/Dockerfile
+    container_name: comment-digestor
+    entrypoint: /comment_digestor
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links:
+      - rabbitmq
+    networks:
+      - tp2_net
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - LOAD_BALANCE=1
+      - PROCESS_GROUP=comment_digestor
+      - ID=0
+  
+  post-sentiment-avg-calculator:
+    build:
+      context: ./
+      dockerfile: ./server/post_sentiment_avg_calculator/Dockerfile
+    container_name: post-sentiment-avg-calculator
+    entrypoint: /calculator
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links:
+      - rabbitmq
+    networks:
+      - tp2_net
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - LOAD_BALANCE=1
+      - PROCESS_GROUP=post_sentiment_avg_calculator
+      - ID=0
+  
 networks:
   tp2_net:
     name: "tp2_net"

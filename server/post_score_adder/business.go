@@ -13,6 +13,13 @@ type PostScoreAdder struct {
 	Sum     int64
 }
 
+func NewCalculator() PostScoreAdder {
+	return PostScoreAdder{
+		Sum:     0,
+		Counter: 0,
+	}
+}
+
 func (self *PostScoreAdder) add(input string) {
 	log.Debugf("Received: %v", input)
 
@@ -34,7 +41,7 @@ func test_function() {
 		"123,http://hola.png,150",
 	}
 
-	adder := PostScoreAdder{}
+	adder := NewCalculator()
 
 	work := adder.add
 

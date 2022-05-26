@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -29,11 +30,9 @@ type Client struct {
 	config          ClientConfig
 	posts_sent      uint
 	comments_sent   uint
-	posts_queue     chan string
-	comments_queue  chan string
+	to_send         chan protocol.Encodable
 	server_response chan protocol.Encodable
-	posts_finish    chan bool
-	comments_finish chan bool
+	finished        sync.WaitGroup
 	quit            chan bool
 	has_finished    chan bool
 }
@@ -52,37 +51,75 @@ func Start(config ClientConfig) (*Client, error) {
 		config:          config,
 		posts_sent:      0,
 		comments_sent:   0,
-		posts_queue:     make(chan string, 100),
-		comments_queue:  make(chan string, 100),
+		to_send:         make(chan protocol.Encodable, 1000),
 		server_response: make(chan protocol.Encodable, 2),
-		posts_finish:    make(chan bool, 2),
-		comments_finish: make(chan bool, 2),
 		quit:            make(chan bool, 2),
 		has_finished:    make(chan bool, 2),
+		finished:        sync.WaitGroup{},
 	}
+
+	post_chan := make(chan string, 100)
+	comment_chan := make(chan string, 100)
 
 	err = read_from_file(
 		config.File_path_post,
 		config.Loop_period_post,
-		client.posts_queue,
-		client.posts_finish,
+		post_chan,
 		client.quit,
 	)
 	if err != nil {
 		client.quit <- true
 		return nil, err
 	}
-	// err = read_from_file(
-	// 	config.File_path_comment,
-	// 	config.Loop_period_comment,
-	// 	client.comments_queue,
-	// 	client.comments_finish,
-	// 	client.quit,
-	// )
-	// if err != nil {
-	// 	client.quit <- true //We close previous thread
-	// 	return nil, err
-	// }
+	err = read_from_file(
+		config.File_path_comment,
+		config.Loop_period_comment,
+		comment_chan,
+		client.quit,
+	)
+	if err != nil {
+		client.quit <- true //We close previous thread
+		return nil, err
+	}
+
+	go func() {
+		for m := range post_chan {
+			log.Debugf("Sending post %s", m)
+			client.posts_sent += 1
+			if client.posts_sent%10000 == 0 {
+				log.Infof("Se enviaron %v posts", client.posts_sent)
+			}
+			client.to_send <- &protocol.Post{
+				Post: m,
+			}
+		}
+		log.Infof("Posts finished")
+		client.to_send <- &protocol.PostFinished{}
+		client.finished.Done()
+	}()
+
+	go func() {
+		for m := range comment_chan {
+			log.Debugf("Sending comment %s", m)
+			client.comments_sent += 1
+			if client.comments_sent%10000 == 0 {
+				log.Infof("Se enviaron %v comments", client.comments_sent)
+			}
+			client.to_send <- &protocol.Comment{
+				Comment: m,
+			}
+		}
+		log.Infof("Comments finished")
+		client.to_send <- &protocol.CommentFinished{}
+		client.finished.Done()
+	}()
+
+	client.finished.Add(2)
+
+	go func() {
+		client.finished.Wait()
+		close(client.to_send)
+	}()
 
 	go client.receive_from_server()
 	go client.run()
@@ -92,6 +129,7 @@ func Start(config ClientConfig) (*Client, error) {
 
 func (self *Client) Finish() {
 	self.quit <- true
+	self.finished.Wait()
 	<-self.has_finished
 }
 
@@ -100,94 +138,45 @@ func (self *Client) run() {
 		self.server.Close()
 		self.has_finished <- true
 	}()
-
+	//Problema: Se entra en loop cuando alguno de los dos se cierra
 Loop:
 	for {
 		select {
-		case p := <-self.posts_queue:
-			if err := self.send_post(p); err != nil {
-				return
+		case m, more := <-self.to_send:
+			if !more {
+				self.wait_for_server_response()
+				break Loop
 			}
-		case c := <-self.comments_queue:
-			if err := self.send_comment(c); err != nil {
-				return
+			err := protocol.Send(self.server, m)
+			if err != nil {
+				log.Error(Err.Ctx("Error sending to server. ", err))
+				break Loop
 			}
-		case <-self.comments_finish:
-			if err := self.send_comments_finished(); err != nil {
-				return
-			}
-		case <-self.posts_finish:
-			if err := self.send_posts_finished(); err != nil {
-				return
-			}
-		case r := <-self.server_response:
-			should_finish := parse_server_response(r)
+		case m := <-self.server_response:
+			should_finish := parse_server_response(m)
 			if should_finish {
-				return
+				break Loop
 			}
 		case <-self.quit:
+			self.quit <- true
 			break Loop
 		}
 	}
 }
 
-func (self *Client) send_post(post string) error {
-	log.Debugf("Sending post %s", post)
-	err := protocol.Send(self.server, &protocol.Post{Post: post})
-	if err != nil {
-		log.Error(Err.Ctx("Error sending a post to server. ", err))
-		return err
+func (self *Client) wait_for_server_response() {
+	select {
+	case m := <-self.server_response:
+		parse_server_response(m)
+	case <-self.quit:
+		self.quit <- true
 	}
-	self.posts_sent += 1
-	if self.posts_sent%10000 == 0 {
-		log.Infof("Se enviaron %v posts", self.posts_sent)
-	}
-
-	return nil
-}
-
-func (self *Client) send_comment(comment string) error {
-	log.Debugf("Sending comment %s", comment)
-	err := protocol.Send(self.server, &protocol.Comment{Comment: comment})
-	if err != nil {
-		log.Error(Err.Ctx("Error sending a comment to server. ", err))
-		return err
-	}
-	self.comments_sent += 1
-	if self.posts_sent%10000 == 0 {
-		log.Infof("Se enviaron %v comments", self.comments_sent)
-	}
-
-	return nil
-}
-
-func (self *Client) send_posts_finished() error {
-	log.Infof("Se envía fin de posts")
-	err := protocol.Send(self.server, &protocol.PostFinished{})
-	if err != nil {
-		log.Error(Err.Ctx("Error sending a PostsFinished to server. ", err))
-		return err
-	}
-
-	return nil
-}
-
-func (self *Client) send_comments_finished() error {
-	log.Infof("Se envía fin de comments")
-	err := protocol.Send(self.server, &protocol.CommentFinished{})
-	if err != nil {
-		log.Error(Err.Ctx("Error sending a CommentsFinished to server. ", err))
-		return err
-	}
-
-	return nil
 }
 
 func read_from_file(
 	path string,
 	sleep_time time.Duration,
 	output chan string,
-	notify_finish chan bool,
 	quit chan bool) error {
 
 	f, err := os.Open(path)
@@ -196,7 +185,10 @@ func read_from_file(
 	}
 
 	go func() {
-		defer f.Close()
+		defer func() {
+			f.Close()
+			close(output)
+		}()
 		reader := csv.NewReader(f)
 		reader.Read() //Extract header
 	Loop:
@@ -219,7 +211,6 @@ func read_from_file(
 				time.Sleep(sleep_time)
 			}
 		}
-		notify_finish <- true
 	}()
 
 	return nil
@@ -232,7 +223,7 @@ func (self *Client) receive_from_server() {
 		self.quit <- true
 		return
 	default:
-		response, err := protocol.Receive(self.server)
+		response, err := protocol.Receive(self.server) //TODO: Aca habria que usar timeout
 		if err != nil {
 			log.Error(Err.Ctx("Error receiving response from server", err))
 			return
@@ -255,5 +246,7 @@ func parse_server_response(response protocol.Encodable) bool {
 }
 
 func print_server_response(response *protocol.Response) {
-	log.Printf("%v", response.Post_score_average)
+	log.Infof("Calculation Results: ")
+	log.Infof(" - Post Score AVG: %v", response.Post_score_average)
+	log.Infof(" - Best AVG Sentiment Meme: %v", response.Best_sentiment_meme)
 }
