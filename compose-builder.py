@@ -201,14 +201,14 @@ def main():
                 "PROCESS_GROUP=student_joiner"
             ]
         },
-        "student-comment-filter": {
-            "entrypoint": "/filter",
-            "dockerfile": "./server/student_comment_filter/Dockerfile",
-            "environment": [
-                f"LOAD_BALANCE={1}", #TODO: El valor de load balance corresponde al # de student-joiners
-                "PROCESS_GROUP=student_joiner"
-            ]
-        },
+        # "student-comment-filter": {
+        #     "entrypoint": "/filter",
+        #     "dockerfile": "./server/student_comment_filter/Dockerfile",
+        #     "environment": [
+        #         f"LOAD_BALANCE={1}", #TODO: El valor de load balance corresponde al # de student-joiners
+        #         "PROCESS_GROUP=student_joiner"
+        #     ]
+        # },
         "best-sentiment-avg-downloader": {
             "entrypoint": "/downloader",
             "dockerfile": "./server/best_sentiment_avg_downloader/Dockerfile",

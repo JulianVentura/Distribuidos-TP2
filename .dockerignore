@@ -1,4 +1,5 @@
 .dockerignore
+**/files
 **/config*
 **/Dockerfile
 **/docker-compose-*.yaml

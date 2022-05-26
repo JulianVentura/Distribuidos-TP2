@@ -169,7 +169,6 @@ services:
     volumes:
       - ./config.json:/config.json
     environment:
-      - LOAD_BALANCE=1
       - PROCESS_GROUP=sentiment_joiner
       - ID=0
   
