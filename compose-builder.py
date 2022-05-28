@@ -127,7 +127,7 @@ def main():
         "post-score-adder": 1,
         "post-digestor": 1,
         "post-score-avg-calculator": 1,
-        "post-above-avg-filter": 1,
+        # "post-above-avg-filter": 3,
         "best-sentiment-avg-downloader": 1,
         "sentiment-joiner": 1,
         # "student-joiner": 1,
@@ -183,7 +183,7 @@ def main():
             "entrypoint": "/calculator",
             "dockerfile": "./server/post_sentiment_avg_calculator/Dockerfile",
             "environment": [
-                f"LOAD_BALANCE={1}", 
+                f"LOAD_BALANCE={worker_number['sentiment-joiner']}", 
                 "PROCESS_GROUP=post_sentiment_avg_calculator"
             ]
         },

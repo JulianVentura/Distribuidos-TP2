@@ -47,7 +47,7 @@ client-up:
 
 server-down:
 	docker-compose -f docker-compose-server.yaml stop -t 10
-	docker-compose -f docker-compose-server.yaml down
+	docker-compose -f docker-compose-server.yaml down --remove-orphans
 .PHONY: server-down
 
 client-down:

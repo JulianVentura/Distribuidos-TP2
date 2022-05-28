@@ -8,11 +8,17 @@ import (
 	amqp "github.com/streadway/amqp"
 )
 
+type MessageMiddlewareConfig struct {
+	Address             string
+	Notify_on_finish    bool
+	Channel_buffer_size uint
+}
+
 type MessageMiddleware struct {
-	connection       *amqp.Connection
-	channel          *amqp.Channel
-	writers          []*WriteWorker
-	notify_on_finish bool
+	connection *amqp.Connection
+	channel    *amqp.Channel
+	writers    []*WriteWorker
+	config     MessageMiddlewareConfig
 }
 
 type QueueConfig struct {
@@ -23,14 +29,16 @@ type QueueConfig struct {
 	Direction string
 }
 
-func Start(host string, notify_on_finish bool) (*MessageMiddleware, error) {
+func Start(config MessageMiddlewareConfig) (*MessageMiddleware, error) {
+
+	config.Channel_buffer_size = 1000000 //TODO: Change hardcoded
 
 	self := &MessageMiddleware{
-		writers:          make([]*WriteWorker, 0, 10),
-		notify_on_finish: notify_on_finish,
+		writers: make([]*WriteWorker, 0, 5), //Initial size
+		config:  config,
 	}
 
-	err := self.start_connection(host)
+	err := self.start_connection(config.Address)
 
 	if err != nil {
 		return nil, err
@@ -106,7 +114,7 @@ func (self *MessageMiddleware) Read_queue(config QueueConfig) (chan Message, err
 }
 
 func (self *MessageMiddleware) create_read_worker_queue(config *QueueConfig) (chan Message, error) {
-	channel := make(chan Message, 100) //TODO: Pasar a configuraciones
+	channel := make(chan Message, self.config.Channel_buffer_size)
 	var q_channel <-chan amqp.Delivery
 	var err error
 	var queue_origin string
@@ -153,7 +161,7 @@ func (self *MessageMiddleware) create_read_worker_queue(config *QueueConfig) (ch
 }
 
 func (self *MessageMiddleware) create_read_topic_queue(config *QueueConfig) (chan Message, error) {
-	channel := make(chan Message, 100) //TODO: Pasar a configuraciones
+	channel := make(chan Message, self.config.Channel_buffer_size)
 	if len(config.Topic) < 1 || len(config.Source) < 1 {
 		return nil, fmt.Errorf("Error trying to create a read topic queue: topic or source not provided")
 	}
@@ -173,7 +181,7 @@ func (self *MessageMiddleware) create_read_topic_queue(config *QueueConfig) (cha
 }
 
 func (self *MessageMiddleware) create_read_fanout_queue(config *QueueConfig) (chan Message, error) {
-	channel := make(chan Message, 100) //TODO: Pasar a configuraciones
+	channel := make(chan Message, self.config.Channel_buffer_size)
 	if len(config.Source) < 1 {
 		return nil, fmt.Errorf("Error trying to create a read fanout queue: source not provided")
 	}
@@ -309,7 +317,7 @@ func (self *MessageMiddleware) Write_queue(config QueueConfig) (chan Message, er
 }
 
 func (self *MessageMiddleware) create_write_worker_queue(config *QueueConfig) (chan Message, error) {
-	channel := make(chan Message, 100) //TODO: Pasar a configuraciones
+	channel := make(chan Message, self.config.Channel_buffer_size)
 	if len(config.Name) < 1 {
 		return nil, fmt.Errorf("Error trying to create a write worker queue: name not provided")
 	}
@@ -332,7 +340,7 @@ func (self *MessageMiddleware) create_write_worker_queue(config *QueueConfig) (c
 		config.Name,
 		channel,
 		self.channel,
-		self.notify_on_finish,
+		self.config.Notify_on_finish,
 	)
 
 	self.writers = append(self.writers, writer)
@@ -342,7 +350,7 @@ func (self *MessageMiddleware) create_write_worker_queue(config *QueueConfig) (c
 
 func (self *MessageMiddleware) create_write_topic_queue(config *QueueConfig) (chan Message, error) {
 	log.Debugf("Creating a work queue %v", config)
-	channel := make(chan Message, 100) //TODO: Pasar a configuraciones
+	channel := make(chan Message, self.config.Channel_buffer_size)
 	if len(config.Name) < 1 {
 		return nil, fmt.Errorf("Error trying to create a write topic queue: name not provided")
 	}
@@ -365,7 +373,7 @@ func (self *MessageMiddleware) create_write_topic_queue(config *QueueConfig) (ch
 		"",
 		channel,
 		self.channel,
-		self.notify_on_finish,
+		self.config.Notify_on_finish,
 	)
 
 	self.writers = append(self.writers, writer)
@@ -374,7 +382,7 @@ func (self *MessageMiddleware) create_write_topic_queue(config *QueueConfig) (ch
 }
 
 func (self *MessageMiddleware) create_write_fanout_queue(config *QueueConfig) (chan Message, error) {
-	channel := make(chan Message, 100) //TODO: Pasar a configuraciones
+	channel := make(chan Message, self.config.Channel_buffer_size)
 	if len(config.Name) < 1 {
 		return nil, fmt.Errorf("Error trying to create a write fanout queue: name not provided")
 	}
@@ -397,7 +405,7 @@ func (self *MessageMiddleware) create_write_fanout_queue(config *QueueConfig) (c
 		"",
 		channel,
 		self.channel,
-		self.notify_on_finish,
+		self.config.Notify_on_finish,
 	)
 
 	self.writers = append(self.writers, writer)
@@ -409,7 +417,7 @@ func (self *MessageMiddleware) notify_new_write_queue_to_admin(config *QueueConf
 
 	//TODO: Cambiar el nombre de la variable a algo que tenga más sentido
 	//Lo que estamos haciendo acá es no enviar el mensaje si se trata del admin
-	if !self.notify_on_finish {
+	if !self.config.Notify_on_finish {
 		return nil
 	}
 
@@ -442,7 +450,7 @@ func (self *MessageMiddleware) notify_new_read_queue_to_admin(queue_origin strin
 		return nil
 	}
 
-	if !self.notify_on_finish {
+	if !self.config.Notify_on_finish {
 		return nil
 	}
 

@@ -3,8 +3,8 @@ server:
   address: "admin:12345"
 
 loop-period: 
-  post: "1us"
-  comment: "1us"
+  post: "5us"
+  comment: "5us"
 
 files-path:
   post: "./files/posts_small.csv"

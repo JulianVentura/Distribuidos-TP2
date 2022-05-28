@@ -20,7 +20,12 @@ func StartAdmin(
 	quit chan bool,
 ) (*MiddlewareAdmin, error) {
 
-	msg_middleware, err := mom.Start(mom_address, false)
+	m_config := mom.MessageMiddlewareConfig{
+		Address:          mom_address,
+		Notify_on_finish: false,
+	}
+
+	msg_middleware, err := mom.Start(m_config)
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't connect to mom: %v", err)
 	}

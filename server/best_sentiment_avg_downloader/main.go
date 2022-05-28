@@ -37,7 +37,12 @@ func main() {
 	worker.Print_config(&config, "Best Sentiment AVG Downloader")
 
 	// - Mom initialization
-	msg_middleware, err := mom.Start(config.Mom_address, true)
+	m_config := mom.MessageMiddlewareConfig{
+		Address:          config.Mom_address,
+		Notify_on_finish: true,
+	}
+
+	msg_middleware, err := mom.Start(m_config)
 	if err != nil {
 		log.Fatalf("Couldn't connect to mom: %v", err)
 	}
