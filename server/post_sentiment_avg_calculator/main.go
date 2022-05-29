@@ -5,7 +5,6 @@ import (
 
 	"distribuidos/tp2/server/common/consumer"
 	mom "distribuidos/tp2/server/common/message_middleware/message_middleware"
-	"distribuidos/tp2/server/common/utils"
 	"distribuidos/tp2/server/common/worker"
 
 	log "github.com/sirupsen/logrus"
@@ -13,7 +12,7 @@ import (
 
 func main() {
 	// - Definir señal de quit
-	quit := utils.Start_quit_signal()
+	quit := worker.Start_quit_signal()
 	// - Definimos lista de colas
 	queues_list := []string{
 		"input",
@@ -34,7 +33,7 @@ func main() {
 	log.Info("Starting Post Sentiment AVG Calculator...")
 
 	//Expand the queues topic with process id
-	utils.Expand_queues_topic(config.Queues, config.Id)
+	worker.Expand_queues_topic(config.Queues, config.Id)
 
 	//- Print config
 	worker.Print_config(&config, "Post Sentiment AVG Calculator")
@@ -53,7 +52,7 @@ func main() {
 	defer msg_middleware.Finish()
 	// - Queues initialization
 
-	queues, err := utils.Init_queues(msg_middleware, config.Queues)
+	queues, err := worker.Init_queues(msg_middleware, config.Queues)
 	if err != nil {
 		log.Fatalf("Couldn't connect to mom: %v", err)
 	}
@@ -75,6 +74,7 @@ func main() {
 	result_topic := fmt.Sprintf("%v_result", config.Process_group)
 
 	for _, r := range result {
-		utils.Balance_load_send(out, result_topic, config.Load_balance, r)
+		worker.Balance_load_send(out, result_topic, config.Load_balance, r)
 	}
+	calculator.info()
 }

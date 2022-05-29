@@ -18,15 +18,15 @@ func NewCalculator() PostScoreAdder {
 	return PostScoreAdder{
 		Sum:     0,
 		Counter: 0,
-		Parser:  utils.NewParser(3),
+		Parser:  utils.NewParser(),
 	}
 }
 
 func (self *PostScoreAdder) add(input string) {
 	log.Debugf("Received: %v", input)
-	splits, err := self.Parser.Read(input)
-	if err != nil {
-		log.Errorf("Received bad formated input on PostScoreAdder: %v", err)
+	splits := self.Parser.Read(input)
+	if len(splits) != 3 {
+		log.Errorf("Received bad formated input on PostScoreAdder")
 		return
 	}
 	score, err := strconv.ParseInt(splits[2], 10, 32)
@@ -53,7 +53,7 @@ func test_function() {
 	}
 
 	adder := NewCalculator()
-	adder.Parser = utils.CustomParser(',', 3)
+	adder.Parser = utils.CustomParser(',')
 	work := adder.add
 
 	for _, line := range lines {

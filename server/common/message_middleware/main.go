@@ -1,7 +1,7 @@
 package main
 
 import (
-	"distribuidos/tp2/server/common/utils"
+	"distribuidos/tp2/server/common/worker"
 	"fmt"
 
 	log "github.com/sirupsen/logrus"
@@ -24,8 +24,8 @@ func InitLogger(logLevel string) error {
 func main() {
 
 	//TODO: Levantar todo de config
-	quit := utils.Start_quit_signal()
-	if err := InitLogger("debug"); err != nil {
+	quit := worker.Start_quit_signal()
+	if err := InitLogger("info"); err != nil {
 		fmt.Println("Couldn't initialize logger")
 		return
 	}

@@ -13,22 +13,29 @@ type BestSentimentAvgDownloader struct {
 	Best_score float64
 	Best       string
 	Parser     utils.MessageParser
+	arrivals   uint
 }
 
 func NewDownloader() BestSentimentAvgDownloader {
 	return BestSentimentAvgDownloader{
 		Best_score: math.Inf(-1),
 		Best:       "",
-		Parser:     utils.NewParser(4),
+		Parser:     utils.NewParser(),
 	}
+}
+
+func (self *BestSentimentAvgDownloader) info() {
+	//TODO: Eliminate this. It's only for debugging purposes
+	log.Infof("Arrivals: %v", self.arrivals)
 }
 
 func (self *BestSentimentAvgDownloader) work(input string) {
 	log.Debugf("Received: %v", input)
+	self.arrivals += 1
 
-	split, err := self.Parser.Read(input)
-	if err != nil {
-		log.Errorf("Received bad formated input: %v", err)
+	split := self.Parser.Read(input)
+	if len(split) != 4 {
+		log.Errorf("Received bad formated input")
 		return
 	}
 	score, err := strconv.ParseFloat(split[3], 64)
@@ -56,7 +63,7 @@ func test_function() {
 	}
 
 	downloader := NewDownloader()
-	downloader.Parser = utils.CustomParser(',', 4)
+	downloader.Parser = utils.CustomParser(',')
 
 	for _, line := range lines {
 		downloader.work(line)

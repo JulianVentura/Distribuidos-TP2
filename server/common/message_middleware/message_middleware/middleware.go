@@ -2,6 +2,7 @@ package message_middleware
 
 import (
 	Err "distribuidos/tp2/common/errors"
+	"distribuidos/tp2/server/common/utils"
 	"fmt"
 
 	log "github.com/sirupsen/logrus"
@@ -202,6 +203,7 @@ func (self *MessageMiddleware) create_read_fanout_queue(config *QueueConfig) (ch
 
 func read_worker(input <-chan amqp.Delivery, output chan Message) {
 	//Will continue until the connection is closed
+	parser := utils.CustomParser(rune(0x1e))
 	for msg := range input {
 		body := string(msg.Body)
 		if body == "finish" {
@@ -217,9 +219,12 @@ func read_worker(input <-chan amqp.Delivery, output chan Message) {
 		if err != nil {
 			log.Errorf("Failed to ack message")
 		}
-		output <- Message{
-			Body:  body,
-			Topic: msg.RoutingKey,
+		splits := parser.Read(body)
+		for _, m := range splits {
+			output <- Message{
+				Body:  m,
+				Topic: msg.RoutingKey,
+			}
 		}
 	}
 }

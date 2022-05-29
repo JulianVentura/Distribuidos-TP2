@@ -3,7 +3,7 @@ package main
 import (
 	"distribuidos/tp2/server/admin/src/admin"
 	mom "distribuidos/tp2/server/common/message_middleware/message_middleware"
-	"distribuidos/tp2/server/common/utils"
+	"distribuidos/tp2/server/common/worker"
 	"fmt"
 	"io/ioutil"
 
@@ -92,7 +92,7 @@ func init_config() (admin.AdminConfig, map[string]mom.QueueConfig, error) {
 		"best_sent_meme_result",
 	}
 
-	queues_config, err := utils.Parse_queues_config(admin_data, queues_list)
+	queues_config, err := worker.Parse_queues_config(admin_data, queues_list)
 	if err != nil {
 		return config, nil, err
 	}
@@ -123,7 +123,7 @@ func main() {
 	print_config(&config, q_configs)
 
 	// - Create quit signal handler
-	quit := utils.Start_quit_signal()
+	quit := worker.Start_quit_signal()
 
 	// - Mom initialization
 	m_config := mom.MessageMiddlewareConfig{
@@ -138,7 +138,7 @@ func main() {
 
 	defer msg_middleware.Finish()
 
-	queues, err := utils.Init_queues(msg_middleware, q_configs)
+	queues, err := worker.Init_queues(msg_middleware, q_configs)
 	if err != nil {
 		log.Fatalf("Couldn't init queues: %v", err)
 	}

@@ -16,24 +16,22 @@ type PostAboveAvgFilter struct {
 func NewFilter(avg float64) PostAboveAvgFilter {
 	return PostAboveAvgFilter{
 		avg:    avg,
-		Parser: utils.NewParser(3),
+		Parser: utils.NewParser(),
 	}
 }
 
 func (self *PostAboveAvgFilter) work(input string) (string, error) {
 	log.Debugf("Received: %v", input)
 
-	split, err := self.Parser.Read(input)
-	if err != nil {
-		log.Errorf("Received bad formated input: %v", err)
-		return "", nil
+	split := self.Parser.Read(input)
+	if len(split) != 3 {
+		return "", fmt.Errorf("Received bad formated input: %v")
 	}
 	id := split[0]
 	m_url := split[1]
 	score, err := strconv.ParseFloat(split[2], 10)
 	if err != nil {
-		log.Errorf("Couldn't parse score: %v", err)
-		return "", nil
+		return "", fmt.Errorf("Couldn't parse score: %v", err)
 	}
 
 	if score >= self.avg {
@@ -55,7 +53,7 @@ func test_function() {
 	}
 
 	adder := NewFilter(avg)
-	adder.Parser = utils.CustomParser(',', 3)
+	adder.Parser = utils.CustomParser(',')
 
 	work := adder.work
 

@@ -5,7 +5,6 @@ import (
 
 	"distribuidos/tp2/server/common/consumer"
 	mom "distribuidos/tp2/server/common/message_middleware/message_middleware"
-	"distribuidos/tp2/server/common/utils"
 	"distribuidos/tp2/server/common/worker"
 
 	log "github.com/sirupsen/logrus"
@@ -30,7 +29,7 @@ import (
 
 func main() {
 	// - Definir señal de quit
-	quit := utils.Start_quit_signal()
+	quit := worker.Start_quit_signal()
 	// - Definimos lista de colas
 	queues_list := []string{
 		"input",
@@ -66,7 +65,7 @@ func main() {
 
 	defer msg_middleware.Finish()
 	// - Queues initialization
-	queues, err := utils.Init_queues(msg_middleware, config.Queues)
+	queues, err := worker.Init_queues(msg_middleware, config.Queues)
 	if err != nil {
 		log.Fatalf("Couldn't connect to mom: %v", err)
 	}

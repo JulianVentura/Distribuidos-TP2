@@ -9,24 +9,30 @@ import (
 )
 
 type SentimentAvgCalculator struct {
-	posts  map[string][]float64
-	Parser utils.MessageParser
+	posts    map[string][]float64
+	Parser   utils.MessageParser
+	arrivals uint
 }
 
 func NewCalculator() SentimentAvgCalculator {
 
 	return SentimentAvgCalculator{
 		posts:  make(map[string][]float64, 100), //Initial value
-		Parser: utils.NewParser(3),
+		Parser: utils.NewParser(),
 	}
+}
+
+func (self *SentimentAvgCalculator) info() {
+	//TODO: Eliminate this. It's only for debugging purposes
+	log.Infof("Arrivals: %v, Written: %v", self.arrivals, len(self.posts))
 }
 
 func (self *SentimentAvgCalculator) add(input string) {
 	log.Debugf("Received: %v", input)
-
-	split, err := self.Parser.Read(input)
-	if err != nil {
-		log.Errorf("Received bad formated input on SentimentAvgCalculator: %v", err)
+	self.arrivals += 1
+	split := self.Parser.Read(input)
+	if len(split) != 3 {
+		log.Errorf("Received bad formated input on SentimentAvgCalculator")
 		return
 	}
 	p_id := split[0]
@@ -65,7 +71,7 @@ func test_function() {
 	}
 
 	adder := NewCalculator()
-	adder.Parser = utils.CustomParser(',', 3)
+	adder.Parser = utils.CustomParser(',')
 
 	work := adder.add
 

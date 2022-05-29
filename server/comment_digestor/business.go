@@ -12,7 +12,7 @@ type CommentDigestor struct {
 	permalink_r      *regexp.Regexp
 	sentiment_r      *regexp.Regexp
 	body_r           *regexp.Regexp
-	parser           utils.MessageParser
+	Parser           utils.MessageParser
 	received_counter uint //TODO: Delete this
 	written_counter  uint
 }
@@ -24,15 +24,11 @@ func (self *CommentDigestor) info() {
 
 func NewDigestor() CommentDigestor {
 	self := CommentDigestor{
-		parser: utils.NewParser(10),
+		Parser: utils.NewParser(),
 	}
 	self.generate_regex()
 
 	return self
-}
-
-func (self *CommentDigestor) SetParser(parser utils.MessageParser) {
-	self.parser = parser
 }
 
 func (self *CommentDigestor) filter(input string) (string, error) {
@@ -43,8 +39,8 @@ func (self *CommentDigestor) filter(input string) (string, error) {
 	body_idx := 7
 	sentiment_idx := 8
 
-	splits, err := self.parser.Read(input)
-	if err != nil {
+	splits := self.Parser.Read(input)
+	if len(splits) != 10 {
 		return "", fmt.Errorf("invalid input")
 	}
 
@@ -66,7 +62,7 @@ func (self *CommentDigestor) filter(input string) (string, error) {
 	}
 
 	output := []string{post_id, sentiment, body}
-	result := self.parser.Write(output)
+	result := self.Parser.Write(output)
 
 	self.written_counter += 1
 
@@ -112,7 +108,7 @@ func test_function() {
 	}
 
 	digestor := NewDigestor()
-	digestor.SetParser(utils.CustomParser(',', 10))
+	digestor.Parser = utils.CustomParser(',')
 
 	for id, line := range lines {
 		result, err := digestor.filter(line)

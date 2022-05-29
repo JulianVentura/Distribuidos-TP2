@@ -124,13 +124,13 @@ def main():
     worker_number = {
         "admin": 1,
         "post-score-adder": 4,
-        "post-digestor": 2,
+        "post-digestor": 4,
         "post-score-avg-calculator": 1,
         "post-above-avg-filter": 0,
         "best-sentiment-avg-downloader": 1,
         "sentiment-joiner": 4,
         "student-joiner": 0,
-        "comment-digestor": 2,
+        "comment-digestor": 4,
         "post-sentiment-avg-calculator": 4,
         "student-comment-filter": 0,
     }

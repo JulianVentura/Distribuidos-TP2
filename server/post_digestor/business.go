@@ -13,7 +13,7 @@ type PostDigestor struct {
 	post_id_r        *regexp.Regexp
 	meme_url_r       *regexp.Regexp
 	post_score_r     *regexp.Regexp
-	parser           utils.MessageParser
+	Parser           utils.MessageParser
 	received_counter uint
 	written_counter  uint
 }
@@ -21,15 +21,11 @@ type PostDigestor struct {
 func NewDigestor() PostDigestor {
 
 	self := PostDigestor{
-		parser: utils.NewParser(12),
+		Parser: utils.NewParser(),
 	}
 	self.generate_regex()
 
 	return self
-}
-
-func (self *PostDigestor) SetParser(parser utils.MessageParser) {
-	self.parser = parser
 }
 
 func (self *PostDigestor) info() {
@@ -46,9 +42,9 @@ func (self *PostDigestor) filter(input string) (string, error) {
 	post_meme_idx := 8
 	post_score_idx := 11
 
-	splits, err := self.parser.Read(input)
-	if err != nil {
-		return "", fmt.Errorf("invalid input")
+	splits := self.Parser.Read(input)
+	if len(splits) != 12 {
+		return "", fmt.Errorf("Received bad formated input")
 	}
 
 	post_id := splits[post_id_idx]
@@ -65,7 +61,7 @@ func (self *PostDigestor) filter(input string) (string, error) {
 
 	output := []string{post_id, post_meme, post_score}
 
-	result := self.parser.Write(output)
+	result := self.Parser.Write(output)
 
 	return result, nil
 }
@@ -103,7 +99,7 @@ func test_function() {
 	}
 
 	digestor := NewDigestor()
-	digestor.SetParser(utils.CustomParser(',', 12))
+	digestor.Parser = utils.CustomParser(',')
 
 	for id, line := range lines {
 		result, err := digestor.filter(line)
