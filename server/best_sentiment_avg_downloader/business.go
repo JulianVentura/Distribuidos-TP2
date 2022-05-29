@@ -1,10 +1,10 @@
 package main
 
 import (
+	"distribuidos/tp2/server/common/utils"
 	"fmt"
 	"math"
 	"strconv"
-	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -12,20 +12,30 @@ import (
 type BestSentimentAvgDownloader struct {
 	Best_score float64
 	Best       string
+	Parser     utils.MessageParser
 }
 
 func NewDownloader() BestSentimentAvgDownloader {
 	return BestSentimentAvgDownloader{
 		Best_score: math.Inf(-1),
 		Best:       "",
+		Parser:     utils.NewParser(4),
 	}
 }
 
 func (self *BestSentimentAvgDownloader) work(input string) {
 	log.Debugf("Received: %v", input)
 
-	split := strings.Split(input, ",")
-	score, _ := strconv.ParseFloat(split[3], 64)
+	split, err := self.Parser.Read(input)
+	if err != nil {
+		log.Errorf("Received bad formated input: %v", err)
+		return
+	}
+	score, err := strconv.ParseFloat(split[3], 64)
+	if err != nil {
+		log.Errorf("Couldn't parse score: %v", err)
+		return
+	}
 
 	if score > self.Best_score {
 		self.Best_score = score
@@ -34,7 +44,7 @@ func (self *BestSentimentAvgDownloader) work(input string) {
 }
 
 func (self *BestSentimentAvgDownloader) get_result() string {
-	return fmt.Sprintf("%v", self.Best)
+	return self.Parser.Write([]string{self.Best})
 }
 
 func test_function() {
@@ -46,6 +56,7 @@ func test_function() {
 	}
 
 	downloader := NewDownloader()
+	downloader.Parser = utils.CustomParser(',', 4)
 
 	for _, line := range lines {
 		downloader.work(line)

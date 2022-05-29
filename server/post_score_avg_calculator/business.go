@@ -1,9 +1,9 @@
 package main
 
 import (
+	"distribuidos/tp2/server/common/utils"
 	"fmt"
 	"strconv"
-	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -11,28 +11,43 @@ import (
 type PostScoreAvgCalculator struct {
 	Sum     int64
 	Counter int64
+	Parser  utils.MessageParser
 }
 
 func NewCalculator() PostScoreAvgCalculator {
 	return PostScoreAvgCalculator{
 		Sum:     0,
 		Counter: 0,
+		Parser:  utils.NewParser(2),
 	}
 }
 
 func (self *PostScoreAvgCalculator) add(input string) {
 	log.Debugf("Received: %v", input)
 
-	split := strings.Split(input, ",")
-	score, _ := strconv.ParseInt(split[0], 10, 32)
-	count, _ := strconv.ParseInt(split[1], 10, 32)
+	split, err := self.Parser.Read(input)
+	if err != nil {
+		log.Errorf("Received bad formated input on PostScoreAvgCalculator: %v", err)
+		return
+	}
+	score, err := strconv.ParseInt(split[0], 10, 32)
+	if err != nil {
+		log.Errorf("Received bad formated input on PostScoreAvgCalculator: %v", err)
+		return
+	}
+	count, err := strconv.ParseInt(split[1], 10, 32)
+	if err != nil {
+		log.Errorf("Received bad formated input on PostScoreAvgCalculator: %v", err)
+		return
+	}
 
 	self.Sum += score
 	self.Counter += count
 }
 
 func (self *PostScoreAvgCalculator) get_result() string {
-	return fmt.Sprintf("%.4f", float64(self.Sum)/float64(self.Counter))
+	result := fmt.Sprintf("%.4f", float64(self.Sum)/float64(self.Counter))
+	return self.Parser.Write([]string{result})
 }
 
 func test_function() {
@@ -45,6 +60,7 @@ func test_function() {
 	}
 
 	adder := NewCalculator()
+	adder.Parser = utils.CustomParser(',', 2)
 
 	work := adder.add
 

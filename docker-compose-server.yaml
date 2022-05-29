@@ -114,11 +114,34 @@ services:
       - ID=1
       - ID=2
   
-  post-digestor:
+  post-score-adder3:
+    build:
+      context: ./
+      dockerfile: ./server/post_score_adder/Dockerfile
+    container_name: post-score-adder3
+    entrypoint: /post_score_adder
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links:
+      - rabbitmq
+    networks:
+      - tp2_net
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - PROCESS_GROUP=post_score_adder
+      - ID=0
+      - ID=1
+      - ID=2
+      - ID=3
+  
+  post-digestor0:
     build:
       context: ./
       dockerfile: ./server/post_digestor/Dockerfile
-    container_name: post-digestor
+    container_name: post-digestor0
     entrypoint: /post_digestor
     restart: on-failure
     depends_on:
@@ -131,9 +154,31 @@ services:
     volumes:
       - ./config.json:/config.json
     environment:
-      - LOAD_BALANCE=1
+      - LOAD_BALANCE=4
       - PROCESS_GROUP=post_digestor
       - ID=0
+  
+  post-digestor1:
+    build:
+      context: ./
+      dockerfile: ./server/post_digestor/Dockerfile
+    container_name: post-digestor1
+    entrypoint: /post_digestor
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links:
+      - rabbitmq
+    networks:
+      - tp2_net
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - LOAD_BALANCE=4
+      - PROCESS_GROUP=post_digestor
+      - ID=0
+      - ID=1
   
   post-score-avg-calculator:
     build:
@@ -175,11 +220,11 @@ services:
       - PROCESS_GROUP=best_sentiment_avg_downloader
       - ID=0
   
-  sentiment-joiner:
+  sentiment-joiner0:
     build:
       context: ./
       dockerfile: ./server/joiner/Dockerfile
-    container_name: sentiment-joiner
+    container_name: sentiment-joiner0
     entrypoint: /joiner
     restart: on-failure
     depends_on:
@@ -195,11 +240,77 @@ services:
       - PROCESS_GROUP=sentiment_joiner
       - ID=0
   
-  comment-digestor:
+  sentiment-joiner1:
+    build:
+      context: ./
+      dockerfile: ./server/joiner/Dockerfile
+    container_name: sentiment-joiner1
+    entrypoint: /joiner
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links:
+      - rabbitmq
+    networks:
+      - tp2_net
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - PROCESS_GROUP=sentiment_joiner
+      - ID=0
+      - ID=1
+  
+  sentiment-joiner2:
+    build:
+      context: ./
+      dockerfile: ./server/joiner/Dockerfile
+    container_name: sentiment-joiner2
+    entrypoint: /joiner
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links:
+      - rabbitmq
+    networks:
+      - tp2_net
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - PROCESS_GROUP=sentiment_joiner
+      - ID=0
+      - ID=1
+      - ID=2
+  
+  sentiment-joiner3:
+    build:
+      context: ./
+      dockerfile: ./server/joiner/Dockerfile
+    container_name: sentiment-joiner3
+    entrypoint: /joiner
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links:
+      - rabbitmq
+    networks:
+      - tp2_net
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - PROCESS_GROUP=sentiment_joiner
+      - ID=0
+      - ID=1
+      - ID=2
+      - ID=3
+  
+  comment-digestor0:
     build:
       context: ./
       dockerfile: ./server/comment_digestor/Dockerfile
-    container_name: comment-digestor
+    container_name: comment-digestor0
     entrypoint: /comment_digestor
     restart: on-failure
     depends_on:
@@ -212,15 +323,37 @@ services:
     volumes:
       - ./config.json:/config.json
     environment:
-      - LOAD_BALANCE=1
+      - LOAD_BALANCE=4
       - PROCESS_GROUP=comment_digestor
       - ID=0
   
-  post-sentiment-avg-calculator:
+  comment-digestor1:
+    build:
+      context: ./
+      dockerfile: ./server/comment_digestor/Dockerfile
+    container_name: comment-digestor1
+    entrypoint: /comment_digestor
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links:
+      - rabbitmq
+    networks:
+      - tp2_net
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - LOAD_BALANCE=4
+      - PROCESS_GROUP=comment_digestor
+      - ID=0
+      - ID=1
+  
+  post-sentiment-avg-calculator0:
     build:
       context: ./
       dockerfile: ./server/post_sentiment_avg_calculator/Dockerfile
-    container_name: post-sentiment-avg-calculator
+    container_name: post-sentiment-avg-calculator0
     entrypoint: /calculator
     restart: on-failure
     depends_on:
@@ -233,9 +366,78 @@ services:
     volumes:
       - ./config.json:/config.json
     environment:
-      - LOAD_BALANCE=1
+      - LOAD_BALANCE=4
       - PROCESS_GROUP=post_sentiment_avg_calculator
       - ID=0
+  
+  post-sentiment-avg-calculator1:
+    build:
+      context: ./
+      dockerfile: ./server/post_sentiment_avg_calculator/Dockerfile
+    container_name: post-sentiment-avg-calculator1
+    entrypoint: /calculator
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links:
+      - rabbitmq
+    networks:
+      - tp2_net
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - LOAD_BALANCE=4
+      - PROCESS_GROUP=post_sentiment_avg_calculator
+      - ID=0
+      - ID=1
+  
+  post-sentiment-avg-calculator2:
+    build:
+      context: ./
+      dockerfile: ./server/post_sentiment_avg_calculator/Dockerfile
+    container_name: post-sentiment-avg-calculator2
+    entrypoint: /calculator
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links:
+      - rabbitmq
+    networks:
+      - tp2_net
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - LOAD_BALANCE=4
+      - PROCESS_GROUP=post_sentiment_avg_calculator
+      - ID=0
+      - ID=1
+      - ID=2
+  
+  post-sentiment-avg-calculator3:
+    build:
+      context: ./
+      dockerfile: ./server/post_sentiment_avg_calculator/Dockerfile
+    container_name: post-sentiment-avg-calculator3
+    entrypoint: /calculator
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links:
+      - rabbitmq
+    networks:
+      - tp2_net
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - LOAD_BALANCE=4
+      - PROCESS_GROUP=post_sentiment_avg_calculator
+      - ID=0
+      - ID=1
+      - ID=2
+      - ID=3
   
 networks:
   tp2_net:

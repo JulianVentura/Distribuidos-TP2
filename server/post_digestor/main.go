@@ -11,8 +11,24 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func main() {
+// Hacer una funcion o estructura que:
 
+// - Reciba el nombre del proceso en el archivo de configs
+// - Reciba el nombre del proceso para imprimir configs
+// - Reciba un listado de las envs a parsear
+// - Reciba un listado de las colas a levantar
+
+// - Inicie la quit signal
+// - Levante las configuraciones, parseando en un hash en lugar de struct
+// - Inicie el logger
+// - Imprima las configuraciones levantadas
+// - Levante el middleware
+// - Inicialice las colas y las retorne en un hash (como venimos haciendo)
+// - Tenga un método finish que esencialmente llame a finish del mom
+
+// De esa forma cada main solo se ocupará de implementar una mínima lógica de sincronización y de business
+
+func main() {
 	// - Definir señal de quit
 	quit := utils.Start_quit_signal()
 	// - Definimos lista de colas
@@ -55,7 +71,10 @@ func main() {
 		log.Fatalf("Couldn't connect to mom: %v", err)
 	}
 	// - Callback definition
-	callback := worker.Create_callback(&config, work_callback(), queues["result"])
+
+	digestor := NewDigestor()
+
+	callback := worker.Create_callback(&config, digestor.filter, queues["result"])
 
 	// - Create and run the consumer
 	q := consumer.ConsumerQueues{Input: queues["input"]}
@@ -64,4 +83,5 @@ func main() {
 		log.Fatalf("%v", err)
 	}
 	consumer.Run()
+	// digestor.info()
 }

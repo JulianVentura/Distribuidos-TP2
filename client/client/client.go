@@ -189,7 +189,10 @@ func read_from_file(
 			f.Close()
 			close(output)
 		}()
+		sep := rune(0x1f)
 		reader := csv.NewReader(f)
+		reader.Comma = sep
+		reader.LazyQuotes = true
 		reader.Read() //Extract header
 	Loop:
 		for {
@@ -203,11 +206,11 @@ func read_from_file(
 					break Loop
 				}
 				if err != nil {
-					log.Errorf("Error trying to read from input file %v", path)
+					log.Errorf("Error trying to read from input file %v: %v", path, err)
 					break
 				}
 				log.Debugf("Reading %s", strings.Join(records, ","))
-				output <- strings.Join(records, ",")
+				output <- strings.Join(records, string(sep))
 				time.Sleep(sleep_time)
 			}
 		}

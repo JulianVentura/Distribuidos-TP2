@@ -121,19 +121,18 @@ class Writer:
 
 def main():
 
-    #TODO: Eliminar el hardcodeo de LOAD_BALANCE
     worker_number = {
         "admin": 1,
-        "post-score-adder": 1,
-        "post-digestor": 1,
+        "post-score-adder": 4,
+        "post-digestor": 2,
         "post-score-avg-calculator": 1,
-        # "post-above-avg-filter": 3,
+        "post-above-avg-filter": 0,
         "best-sentiment-avg-downloader": 1,
-        "sentiment-joiner": 1,
-        # "student-joiner": 1,
-        "comment-digestor": 1,
-        "post-sentiment-avg-calculator": 1,
-        # "student-comment-filter": 1,
+        "sentiment-joiner": 4,
+        "student-joiner": 0,
+        "comment-digestor": 2,
+        "post-sentiment-avg-calculator": 4,
+        "student-comment-filter": 0,
     }
 
     config = {
@@ -168,6 +167,7 @@ def main():
             "entrypoint": "/filter",
             "dockerfile": "./server/post_above_avg_filter/Dockerfile",
             "environment": [
+                f"LOAD_BALANCE={worker_number['student-joiner']}",
                 "PROCESS_GROUP=post_above_avg_filter"
             ]
         },
@@ -201,14 +201,14 @@ def main():
                 "PROCESS_GROUP=student_joiner"
             ]
         },
-        # "student-comment-filter": {
-        #     "entrypoint": "/filter",
-        #     "dockerfile": "./server/student_comment_filter/Dockerfile",
-        #     "environment": [
-        #         f"LOAD_BALANCE={1}", #TODO: El valor de load balance corresponde al # de student-joiners
-        #         "PROCESS_GROUP=student_joiner"
-        #     ]
-        # },
+        "student-comment-filter": {
+            "entrypoint": "/filter",
+            "dockerfile": "./server/student_comment_filter/Dockerfile",
+            "environment": [
+                f"LOAD_BALANCE={worker_number['student-joiner']}", 
+                "PROCESS_GROUP=student_joiner"
+            ]
+        },
         "best-sentiment-avg-downloader": {
             "entrypoint": "/downloader",
             "dockerfile": "./server/best_sentiment_avg_downloader/Dockerfile",

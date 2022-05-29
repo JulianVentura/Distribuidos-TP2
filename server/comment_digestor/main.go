@@ -54,7 +54,9 @@ func main() {
 		log.Fatalf("Couldn't connect to mom: %v", err)
 	}
 	// - Callback definition
-	callback := worker.Create_callback(&config, work_callback(), queues["result"])
+
+	digestor := NewDigestor()
+	callback := worker.Create_callback(&config, digestor.filter, queues["result"])
 
 	// - Create and run the consumer
 	q := consumer.ConsumerQueues{Input: queues["input"]}
@@ -63,4 +65,5 @@ func main() {
 		log.Fatalf("%v", err)
 	}
 	consumer.Run()
+	// digestor.info()
 }

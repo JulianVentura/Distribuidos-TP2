@@ -3,5 +3,6 @@
 **/config*
 **/Dockerfile
 **/docker-compose-*.yaml
+notebook
 README.md
 Makefile

@@ -1,30 +1,40 @@
 package main
 
 import (
+	"distribuidos/tp2/server/common/utils"
 	"fmt"
 	"strconv"
-	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
 
 type SentimentAvgCalculator struct {
-	posts map[string][]float64
+	posts  map[string][]float64
+	Parser utils.MessageParser
 }
 
 func NewCalculator() SentimentAvgCalculator {
 
 	return SentimentAvgCalculator{
-		posts: make(map[string][]float64, 100), //Initial value
+		posts:  make(map[string][]float64, 100), //Initial value
+		Parser: utils.NewParser(3),
 	}
 }
 
 func (self *SentimentAvgCalculator) add(input string) {
 	log.Debugf("Received: %v", input)
 
-	split := strings.Split(input, ",")
+	split, err := self.Parser.Read(input)
+	if err != nil {
+		log.Errorf("Received bad formated input on SentimentAvgCalculator: %v", err)
+		return
+	}
 	p_id := split[0]
-	sentiment, _ := strconv.ParseFloat(split[1], 64)
+	sentiment, err := strconv.ParseFloat(split[1], 64)
+	if err != nil {
+		log.Errorf("Sentiment bad formated: %v", err)
+		return
+	}
 
 	_, exists := self.posts[p_id]
 	if !exists {
@@ -38,7 +48,8 @@ func (self *SentimentAvgCalculator) add(input string) {
 func (self *SentimentAvgCalculator) get_result() []string {
 	result := make([]string, 0, len(self.posts))
 	for post, values := range self.posts {
-		result = append(result, fmt.Sprintf("%v,%.4f", post, values[0]/values[1]))
+		to_write := []string{fmt.Sprint(post), fmt.Sprintf("%.4f", values[0]/values[1])}
+		result = append(result, self.Parser.Write(to_write))
 	}
 
 	return result
@@ -54,6 +65,7 @@ func test_function() {
 	}
 
 	adder := NewCalculator()
+	adder.Parser = utils.CustomParser(',', 3)
 
 	work := adder.add
 

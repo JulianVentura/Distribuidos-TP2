@@ -1,28 +1,50 @@
 package main
 
 import (
+	"distribuidos/tp2/server/common/utils"
 	"fmt"
 	"regexp"
-	"strconv"
-	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
 
-func parametrized_work(
-	input string,
-	permalink_regex *regexp.Regexp,
-) (string, error) {
+type CommentDigestor struct {
+	permalink_r      *regexp.Regexp
+	sentiment_r      *regexp.Regexp
+	body_r           *regexp.Regexp
+	parser           utils.MessageParser
+	received_counter uint //TODO: Delete this
+	written_counter  uint
+}
 
+func (self *CommentDigestor) info() {
+	//TODO: Eliminate this. It's only for debugging purposes
+	log.Infof("Received: %v. Written: %v", self.received_counter, self.written_counter)
+}
+
+func NewDigestor() CommentDigestor {
+	self := CommentDigestor{
+		parser: utils.NewParser(10),
+	}
+	self.generate_regex()
+
+	return self
+}
+
+func (self *CommentDigestor) SetParser(parser utils.MessageParser) {
+	self.parser = parser
+}
+
+func (self *CommentDigestor) filter(input string) (string, error) {
 	log.Debugf("Received: %v", input)
+	self.received_counter += 1
 
-	permalink_idx := 7
-	body_idx := 8
-	sentiment_idx := 9
+	permalink_idx := 6
+	body_idx := 7
+	sentiment_idx := 8
 
-	splits := strings.Split(input, ",")
-
-	if len(splits) != 11 {
+	splits, err := self.parser.Read(input)
+	if err != nil {
 		return "", fmt.Errorf("invalid input")
 	}
 
@@ -30,88 +52,75 @@ func parametrized_work(
 	body := splits[body_idx]
 	sentiment := splits[sentiment_idx]
 
-	if len(body) < 1 || body == "NaN" {
+	ok := true
+	ok = ok && self.sentiment_r.MatchString(sentiment)
+	ok = ok && self.body_r.MatchString(body)
+	ok = ok && (body != "[deleted]") && (body != "[removed]")
+	if !ok {
 		return "", fmt.Errorf("invalid input")
 	}
-	_, err := strconv.ParseFloat(sentiment, 64)
-	if err != nil {
-		return "", fmt.Errorf("invalid input")
-	}
-	post_id, err := get_post_id(permalink_regex, permalink)
+	post_id, err := self.get_post_id(permalink)
 
 	if err != nil {
 		return "", fmt.Errorf("invalid input")
 	}
 
 	output := []string{post_id, sentiment, body}
-	result := strings.Join(output, ",")
+	result := self.parser.Write(output)
+
+	self.written_counter += 1
+
 	return result, nil
 }
 
-//TODO: Chequear por valores nulos que puedan tener representación en string, como "NaN" o "nil"
-//Lo que puede pasar es que en el body por ejemplo haya algún Null que en pandas es filtrado y acá no
-//Idea: Guardar los datasets luego de hacer los filtrados de posts y comments y comparar con la salida de estos filtros
-//Habría que usar un único digestor y apagar todos los logs. Luego imprimir por pantalla con fmt las entradas que pasan la validacion
-
-//TODO: Refactor
-func generate_regex() (*regexp.Regexp, *regexp.Regexp, *regexp.Regexp) {
-	//Post id
-	permalink_reg := `https:\/\/old\.reddit\.com\/r\/meirl\/comments\/([^\/]+)\/meirl\/.*`
-
-	//Sentiment
-	sentiment_reg := "^-?[0-9]+$" //Support negative
-
-	//Body
-	body_reg := `.+` //Non empty char, all chars allowed
+func (self *CommentDigestor) generate_regex() {
+	sentiment_r := `^[+-]?(1(\.0+)?|(0\.[0-9]+))$`
+	body_r := `(.*)?\S+(.*)?` // Allow any space
+	permalink_r := `https://old\.reddit\.com/r/((\bme_irl\b)|(\bmeirl\b))/comments/([^/]+)/.*`
 
 	//Build the regex
-	perma_r := regexp.MustCompile(permalink_reg)
-	body_r := regexp.MustCompile(body_reg)
-	sentiment_r := regexp.MustCompile(sentiment_reg)
-
-	return perma_r, body_r, sentiment_r
+	self.sentiment_r = regexp.MustCompile(sentiment_r)
+	self.body_r = regexp.MustCompile(body_r)
+	self.permalink_r = regexp.MustCompile(permalink_r)
 }
 
-func get_post_id(reg *regexp.Regexp, input string) (string, error) {
-
-	split := reg.FindStringSubmatch(input)
+func (self *CommentDigestor) get_post_id(input string) (string, error) {
+	split := self.permalink_r.FindStringSubmatch(input)
 	if len(split) < 2 {
 		return "", fmt.Errorf("Could not get id from input")
 	}
 
-	return split[1], nil
-}
-
-func work_callback() func(string) (string, error) {
-	a, _, _ := generate_regex()
-	return func(input string) (string, error) { return parametrized_work(input, a) }
+	return split[4], nil
 }
 
 func test_function() {
 	lines := []string{
-		//Wront: me_irl instead of meirl
-		"12052031,comment,cag9p9z,2vegg,me_irl,False,1370912170,https://old.reddit.com/r/me_irl/comments/1g2h1a/me_irl/cag9p9z/,According to elsewhere on Reddit: Peggle 2,0.0,2",
 		//Correct
-		"1714671,comment,cqiw1bf,2s5ti,meirl,False,1429562851,https://old.reddit.com/r/meirl/comments/30241o/meirl/cqiw1bf/,Thanks me too,0.4404,1",
+		"comment,cag9p9z,2vegg,me_irl,False,1370912170,https://old.reddit.com/r/me_irl/comments/1g2h1a/,According to elsewhere on Reddit: Peggle 2,0.0,2",
+		//Correct
+		"comment,cag9p9z,2vegg,me_irl,False,1370912170,https://old.reddit.com/r/me_irl/comments/1g2h1a/me_irl/cag9p9z/,According to elsewhere on Reddit: Peggle 2,0.0,2",
+		//Correct
+		"comment,cqiw1bf,2s5ti,meirl,False,1429562851,https://old.reddit.com/r/meirl/comments/30241o/meirl/cqiw1bf/,Thanks me too,0.4404,1",
 		//Fewer values
-		"1714671,cqiw1bf,2s5ti,meirl,False,1429562851,https://old.reddit.com/r/meirl/comments/30241o/meirl/cqiw1bf/,Thanks me too,0.4404,1",
+		"cqiw1bf,2s5ti,meirl,False,1429562851,https://old.reddit.com/r/meirl/comments/30241o/meirl/cqiw1bf/,Thanks me too,0.4404,1",
 		//Bad body
-		"1714671,comment,cqiw1bf,2s5ti,meirl,False,1429562851,https://old.reddit.com/r/meirl/comments/30241o/meirl/cqiw1bf/,,0.4404,1",
+		"comment,cqiw1bf,2s5ti,meirl,False,1429562851,https://old.reddit.com/r/meirl/comments/30241o/meirl/cqiw1bf/,,0.4404,1",
 		//Bad sentiment
-		"1714671,comment,cqiw1bf,2s5ti,meirl,False,1429562851,https://old.reddit.com/r/meirl/comments/30241o/meirl/cqiw1bf/,Thanks me too,,1",
+		"comment,cqiw1bf,2s5ti,meirl,False,1429562851,https://old.reddit.com/r/meirl/comments/30241o/meirl/cqiw1bf/,Thanks me too,,1",
 		//Bad permalink
-		"1714671,comment,cqiw1bf,2s5ti,meirl,False,1429562851,https://old.ret.com/r/meirl/comments/30241o/meirl/cqiw1bf/,Thanks me too,0.4404,1",
+		"comment,cqiw1bf,2s5ti,meirl,False,1429562851,https://old.ret.com/r/meirl/comments/30241o/meirl/cqiw1bf/,Thanks me too,0.4404,1",
 	}
 
-	work := work_callback()
+	digestor := NewDigestor()
+	digestor.SetParser(utils.CustomParser(',', 10))
 
 	for id, line := range lines {
-		result, err := work(line)
+		result, err := digestor.filter(line)
 		if err != nil {
 			fmt.Printf("Line %v: Invalid\n", id+1)
 		} else {
 			fmt.Printf("Line %v: Valid\n", id+1)
-			fmt.Printf("- %v\n", result)
+			fmt.Printf("- (%v)\n", result)
 		}
 	}
 }

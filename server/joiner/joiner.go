@@ -1,27 +1,30 @@
 package main
 
 import (
+	"distribuidos/tp2/server/common/utils"
 	"fmt"
-	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
 
 type Joiner struct {
-	table map[string]string
+	table  map[string]string
+	Parser utils.MessageParser
 }
 
 func NewJoiner() Joiner {
 
 	return Joiner{
-		table: make(map[string]string, 100), //Initial value
+		table:  make(map[string]string, 100), //Initial value
+		Parser: utils.NewParser(0),           //Doesn't matter
 	}
 }
 
 func (self *Joiner) Add(input string) {
 	log.Debugf("Received: %v", input)
 
-	splits := strings.SplitN(input, ",", 2)
+	splits := self.Parser.ReadN(input, 2)
+
 	id := splits[0]
 	body := ""
 	if len(splits) > 1 {
@@ -31,7 +34,7 @@ func (self *Joiner) Add(input string) {
 }
 
 func (self *Joiner) Join(input string) (string, error) {
-	splits := strings.SplitN(input, ",", 2)
+	splits := self.Parser.ReadN(input, 2)
 	id := splits[0]
 
 	body, exists := self.table[id]
@@ -48,7 +51,7 @@ func (self *Joiner) Join(input string) (string, error) {
 		result = append(result, splits[1])
 	}
 
-	return strings.Join(result, ","), nil
+	return self.Parser.Write(result), nil
 }
 
 func test_function() {
@@ -67,6 +70,7 @@ func test_function() {
 	}
 
 	joiner := NewJoiner()
+	joiner.Parser = utils.CustomParser(',', 0)
 
 	for _, line := range to_add {
 		joiner.Add(line)
