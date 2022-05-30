@@ -4,7 +4,9 @@
 
 ## Sistemas Distribuidos I
 
+**Nota**: Se adjunta un notebook en el cuál se detallan los filtros y cálculos realizados sobre el set de datos proporcionado, de forma tal de poder comparar los mismos con los obtenidos por el sistema implementado. Al final del mismo, se incluyen los resultados obtenidos de la ejecución para distintos subsets creados a partir del dataset original. Estos subsets pueden ser creados utilizando las funciones proporcionadas en el propio notebook o descargados del siguiente drive: https://drive.google.com/drive/folders/1xi8uC3BLSM6CgGtrrNcpwrqDVihYh2k_?usp=sharing
 
+Adicionalmente, se decidió modificar el elemento separador de las columnas de los archivos csv que conforman los datasets por uno que no tuviese conflicto con el contenido de las colúmnas, como era el caso del separador ','. En el drive antes mencionado se proveen los archivos con esta modificación.
 
 #### Servidor
 
