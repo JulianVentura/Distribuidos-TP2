@@ -18,6 +18,7 @@ type AdminQueues struct {
 	Comments       chan mom.Message
 	Average_result chan mom.Message
 	Best_meme      chan mom.Message
+	School_memes   chan mom.Message
 }
 
 type Admin struct {
@@ -128,6 +129,12 @@ func (self *Admin) send_results_to_client(client *socket.TCPConnection) error {
 	log.Infof("AVG Result: %v", avg_r_msg.Body)
 	best_meme_msg := <-self.queues.Best_meme
 	log.Infof("Best Meme: %v", best_meme_msg.Body)
+	school_memes := make([]string, 0, 100)
+	for meme_url := range self.queues.School_memes {
+		school_memes = append(school_memes, meme_url.Body)
+		// log.Infof("M_url: %v", meme_url.Body)
+	}
+
 	avg, err := strconv.ParseFloat(avg_r_msg.Body, 64)
 	if err != nil {
 		//TODO: Ver si devolvemos error al cliente
@@ -138,6 +145,7 @@ func (self *Admin) send_results_to_client(client *socket.TCPConnection) error {
 	protocol.Send(client, &protocol.Response{
 		Post_score_average:  avg,
 		Best_sentiment_meme: best_meme_msg.Body,
+		School_memes:        school_memes,
 	})
 
 	return nil

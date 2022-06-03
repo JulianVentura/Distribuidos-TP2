@@ -30,10 +30,8 @@
                 "direction": "read"
             },
             "best_school_memes_result": {
-                "name": "best_school_memes_result",
-                "class": "work",
-                "topic": "",
-                "source": "",
+                "name": "student_joiner_result",
+                "class": "worker",
                 "direction": "read"
             }
         }
@@ -156,6 +154,7 @@
 		"keep_id": false,
 		"base_body_size": 1,
 		"to_join_body_size": 1,
+        "filter_duplicates": false,
         "queues": {
             "base_input": {
                 "name": "",
@@ -184,6 +183,7 @@
 		"keep_id": false,
 		"base_body_size": 1,
 		"to_join_body_size": 0,
+        "filter_duplicates": true,
         "queues": {
             "base_input": {
                 "name": "",
@@ -219,7 +219,7 @@
             },
             "result": {
                 "name": "student_comment_filter_result",
-                "class": "worker",
+                "class": "topic",
                 "direction": "write"
             }
         }

@@ -25,9 +25,14 @@ func parse_configs(envs map[string]string) (JoinerConfig, error) {
 	if err != nil {
 		return config, fmt.Errorf("Couldn't parse to_join_body_size: %v", err)
 	}
+	filter_duplicates, err := strconv.ParseBool(envs["filter_duplicates"])
+	if err != nil {
+		return config, fmt.Errorf("Couldn't parse filter_duplicates: %v", err)
+	}
 	config.keep_id = keep_id
 	config.base_body_size = uint(base_body_size)
 	config.to_join_body_size = uint(to_join_body_size)
+	config.filter_duplicates = filter_duplicates
 	return config, nil
 }
 
@@ -70,6 +75,7 @@ func main() {
 			"keep_id",
 			"base_body_size",
 			"to_join_body_size",
+			"filter_duplicates",
 		},
 		Queues: []string{
 			"base_input",

@@ -252,4 +252,8 @@ func print_server_response(response *protocol.Response) {
 	log.Infof("Calculation Results: ")
 	log.Infof(" - Post Score AVG: %v", response.Post_score_average)
 	log.Infof(" - Best AVG Sentiment Meme: %v", response.Best_sentiment_meme)
+	log.Infof(" - School Memes:")
+	for _, meme := range response.School_memes {
+		log.Infof("   * %v", meme)
+	}
 }

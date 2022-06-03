@@ -15,6 +15,7 @@ func worker_callback(envs map[string]string, queues map[string]chan mom.Message,
 		Comments:       queues["comments"],
 		Average_result: queues["average_result"],
 		Best_meme:      queues["best_sent_meme_result"],
+		School_memes:   queues["best_school_memes_result"],
 	}
 	admin, err := admin.New(envs["server_address"], admin_q, quit)
 	if err != nil {
@@ -37,6 +38,7 @@ func main() {
 			"comments",
 			"average_result",
 			"best_sent_meme_result",
+			"best_school_memes_result",
 		},
 	}
 

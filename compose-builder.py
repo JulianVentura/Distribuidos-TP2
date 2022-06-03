@@ -126,13 +126,13 @@ def main():
         "post-score-adder": 4,
         "post-digestor": 4,
         "post-score-avg-calculator": 1,
-        "post-above-avg-filter": 0,
+        "post-above-avg-filter": 4,
         "best-sentiment-avg-downloader": 1,
         "sentiment-joiner": 4,
-        "student-joiner": 0,
+        "student-joiner": 4,
         "comment-digestor": 4,
         "post-sentiment-avg-calculator": 4,
-        "student-comment-filter": 0,
+        "student-comment-filter": 4,
     }
 
     config = {
@@ -208,7 +208,7 @@ def main():
             "dockerfile": "./server/student_comment_filter/Dockerfile",
             "environment": [
                 f"LOAD_BALANCE={worker_number['student-joiner']}", 
-                "PROCESS_GROUP=student_joiner"
+                "PROCESS_GROUP=student_comment_filter"
             ]
         },
         "best-sentiment-avg-downloader": {

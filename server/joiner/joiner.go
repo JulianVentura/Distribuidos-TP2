@@ -11,10 +11,12 @@ type JoinerConfig struct {
 	keep_id           bool // If true, id will be delivered. If not it will be filtered out
 	base_body_size    uint // Number of columns of base imput body to preserve
 	to_join_body_size uint // Number of columns of 'to join' imput body to preserve
+	filter_duplicates bool // Filter out duplicates before write
 }
 
 type Joiner struct {
 	table           map[string]string
+	joined          map[string]bool
 	Parser          utils.MessageParser
 	config          JoinerConfig
 	post_arrival    uint
@@ -26,6 +28,7 @@ func NewJoiner(config JoinerConfig) Joiner {
 
 	return Joiner{
 		table:           make(map[string]string, 100), //Initial value
+		joined:          make(map[string]bool, 100),
 		Parser:          utils.NewParser(),
 		config:          config,
 		post_arrival:    0,
@@ -40,7 +43,7 @@ func (self *Joiner) info() {
 }
 
 func (self *Joiner) Add(input string) {
-	log.Debugf("Received: %v", input)
+	log.Debugf("Add Received: %v", input)
 	self.post_arrival += 1
 	splits := self.Parser.Read(input)
 	if len(splits) < int(self.config.base_body_size)+1 {
@@ -58,6 +61,7 @@ func (self *Joiner) Add(input string) {
 }
 
 func (self *Joiner) Join(input string) (string, error) {
+	log.Debugf("Join Received: %v", input)
 	self.comment_arrival += 1
 	splits := self.Parser.Read(input)
 	if len(splits) < int(self.config.to_join_body_size)+1 {
@@ -84,9 +88,19 @@ func (self *Joiner) Join(input string) (string, error) {
 		result = append(result, join_body)
 	}
 
+	r := self.Parser.Write(result)
+
+	if self.config.filter_duplicates {
+		_, exists := self.joined[r]
+		if exists {
+			return "", fmt.Errorf("entry do not exist")
+		} else {
+			self.joined[r] = true
+		}
+	}
 	self.join_written += 1
 
-	return self.Parser.Write(result), nil
+	return r, nil
 }
 
 func test_function() {

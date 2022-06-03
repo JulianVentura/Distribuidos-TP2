@@ -248,6 +248,96 @@ services:
       - PROCESS_GROUP=post_score_avg_calculator
       - ID=0
   
+  post-above-avg-filter0:
+    build:
+      context: ./
+      dockerfile: ./server/post_above_avg_filter/Dockerfile
+    container_name: post-above-avg-filter0
+    entrypoint: /filter
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links:
+      - rabbitmq
+    networks:
+      - tp2_net
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - LOAD_BALANCE=4
+      - PROCESS_GROUP=post_above_avg_filter
+      - ID=0
+  
+  post-above-avg-filter1:
+    build:
+      context: ./
+      dockerfile: ./server/post_above_avg_filter/Dockerfile
+    container_name: post-above-avg-filter1
+    entrypoint: /filter
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links:
+      - rabbitmq
+    networks:
+      - tp2_net
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - LOAD_BALANCE=4
+      - PROCESS_GROUP=post_above_avg_filter
+      - ID=0
+      - ID=1
+  
+  post-above-avg-filter2:
+    build:
+      context: ./
+      dockerfile: ./server/post_above_avg_filter/Dockerfile
+    container_name: post-above-avg-filter2
+    entrypoint: /filter
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links:
+      - rabbitmq
+    networks:
+      - tp2_net
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - LOAD_BALANCE=4
+      - PROCESS_GROUP=post_above_avg_filter
+      - ID=0
+      - ID=1
+      - ID=2
+  
+  post-above-avg-filter3:
+    build:
+      context: ./
+      dockerfile: ./server/post_above_avg_filter/Dockerfile
+    container_name: post-above-avg-filter3
+    entrypoint: /filter
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links:
+      - rabbitmq
+    networks:
+      - tp2_net
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - LOAD_BALANCE=4
+      - PROCESS_GROUP=post_above_avg_filter
+      - ID=0
+      - ID=1
+      - ID=2
+      - ID=3
+  
   best-sentiment-avg-downloader:
     build:
       context: ./
@@ -349,6 +439,92 @@ services:
       - ./config.json:/config.json
     environment:
       - PROCESS_GROUP=sentiment_joiner
+      - ID=0
+      - ID=1
+      - ID=2
+      - ID=3
+  
+  student-joiner0:
+    build:
+      context: ./
+      dockerfile: ./server/joiner/Dockerfile
+    container_name: student-joiner0
+    entrypoint: /joiner
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links:
+      - rabbitmq
+    networks:
+      - tp2_net
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - PROCESS_GROUP=student_joiner
+      - ID=0
+  
+  student-joiner1:
+    build:
+      context: ./
+      dockerfile: ./server/joiner/Dockerfile
+    container_name: student-joiner1
+    entrypoint: /joiner
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links:
+      - rabbitmq
+    networks:
+      - tp2_net
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - PROCESS_GROUP=student_joiner
+      - ID=0
+      - ID=1
+  
+  student-joiner2:
+    build:
+      context: ./
+      dockerfile: ./server/joiner/Dockerfile
+    container_name: student-joiner2
+    entrypoint: /joiner
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links:
+      - rabbitmq
+    networks:
+      - tp2_net
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - PROCESS_GROUP=student_joiner
+      - ID=0
+      - ID=1
+      - ID=2
+  
+  student-joiner3:
+    build:
+      context: ./
+      dockerfile: ./server/joiner/Dockerfile
+    container_name: student-joiner3
+    entrypoint: /joiner
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links:
+      - rabbitmq
+    networks:
+      - tp2_net
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - PROCESS_GROUP=student_joiner
       - ID=0
       - ID=1
       - ID=2
@@ -529,6 +705,96 @@ services:
     environment:
       - LOAD_BALANCE=4
       - PROCESS_GROUP=post_sentiment_avg_calculator
+      - ID=0
+      - ID=1
+      - ID=2
+      - ID=3
+  
+  student-comment-filter0:
+    build:
+      context: ./
+      dockerfile: ./server/student_comment_filter/Dockerfile
+    container_name: student-comment-filter0
+    entrypoint: /filter
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links:
+      - rabbitmq
+    networks:
+      - tp2_net
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - LOAD_BALANCE=4
+      - PROCESS_GROUP=student_comment_filter
+      - ID=0
+  
+  student-comment-filter1:
+    build:
+      context: ./
+      dockerfile: ./server/student_comment_filter/Dockerfile
+    container_name: student-comment-filter1
+    entrypoint: /filter
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links:
+      - rabbitmq
+    networks:
+      - tp2_net
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - LOAD_BALANCE=4
+      - PROCESS_GROUP=student_comment_filter
+      - ID=0
+      - ID=1
+  
+  student-comment-filter2:
+    build:
+      context: ./
+      dockerfile: ./server/student_comment_filter/Dockerfile
+    container_name: student-comment-filter2
+    entrypoint: /filter
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links:
+      - rabbitmq
+    networks:
+      - tp2_net
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - LOAD_BALANCE=4
+      - PROCESS_GROUP=student_comment_filter
+      - ID=0
+      - ID=1
+      - ID=2
+  
+  student-comment-filter3:
+    build:
+      context: ./
+      dockerfile: ./server/student_comment_filter/Dockerfile
+    container_name: student-comment-filter3
+    entrypoint: /filter
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links:
+      - rabbitmq
+    networks:
+      - tp2_net
+    volumes:
+      - ./config.json:/config.json
+    environment:
+      - LOAD_BALANCE=4
+      - PROCESS_GROUP=student_comment_filter
       - ID=0
       - ID=1
       - ID=2

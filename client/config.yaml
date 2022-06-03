@@ -7,8 +7,8 @@ loop-period:
   comment: "100ns"
 
 files-path:
-  post: "./files/posts_big.csv"
-  comment: "./files/comments_big.csv"
+  post: "./files/posts_small.csv"
+  comment: "./files/comments_small.csv"
 
 log:
   level: "info"
