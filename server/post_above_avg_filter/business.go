@@ -25,7 +25,7 @@ func (self *PostAboveAvgFilter) work(input string) (string, error) {
 
 	split := self.Parser.Read(input)
 	if len(split) != 3 {
-		return "", fmt.Errorf("Received bad formated input: %v")
+		return "", fmt.Errorf("Received bad formated input")
 	}
 	id := split[0]
 	m_url := split[1]

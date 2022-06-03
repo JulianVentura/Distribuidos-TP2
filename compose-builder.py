@@ -139,7 +139,9 @@ def main():
         "admin": {
             "entrypoint": "/admin",
             "dockerfile": "./server/admin/Dockerfile",
-            "environment": []
+            "environment": [
+                "PROCESS_GROUP=admin"
+            ]
         },
         "post-digestor": {
             "entrypoint": "/post_digestor",

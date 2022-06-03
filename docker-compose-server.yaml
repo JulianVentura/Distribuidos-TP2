@@ -49,6 +49,7 @@ services:
     volumes:
       - ./config.json:/config.json
     environment:
+      - PROCESS_GROUP=admin
       - ID=0
   
   post-score-adder0:

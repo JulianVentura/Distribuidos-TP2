@@ -13,16 +13,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type AdminConfig struct {
-	//Logging
-	Log_level string
-	//Server Connection
-	Server_address string
-	//Mom Connection
-	Mom_address string
-	//Number of workers
-}
-
 type AdminQueues struct {
 	Posts          chan mom.Message
 	Comments       chan mom.Message
@@ -32,7 +22,6 @@ type AdminQueues struct {
 
 type Admin struct {
 	queues               AdminQueues
-	config               AdminConfig
 	skt                  *socket.ServerSocket
 	mutex                sync.Mutex
 	computation_finished chan bool
@@ -40,19 +29,18 @@ type Admin struct {
 }
 
 func New(
-	config AdminConfig,
+	address string,
 	queues AdminQueues,
 	quit chan bool,
 ) (*Admin, error) {
 
-	skt, err := socket.NewServer(config.Server_address)
+	skt, err := socket.NewServer(address)
 	if err != nil {
 		return nil, Err.Ctx("Couldn't create server", err)
 	}
 
 	self := &Admin{
 		queues:               queues,
-		config:               config,
 		skt:                  &skt,
 		mutex:                sync.Mutex{},
 		computation_finished: make(chan bool, 2),

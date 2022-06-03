@@ -34,11 +34,11 @@ func (self *BestSentimentAvgDownloader) work(input string) {
 	self.arrivals += 1
 
 	split := self.Parser.Read(input)
-	if len(split) != 4 {
+	if len(split) != 2 {
 		log.Errorf("Received bad formated input")
 		return
 	}
-	score, err := strconv.ParseFloat(split[3], 64)
+	score, err := strconv.ParseFloat(split[1], 64)
 	if err != nil {
 		log.Errorf("Couldn't parse score: %v", err)
 		return
@@ -46,7 +46,7 @@ func (self *BestSentimentAvgDownloader) work(input string) {
 
 	if score > self.Best_score {
 		self.Best_score = score
-		self.Best = split[1]
+		self.Best = split[0]
 	}
 }
 
@@ -56,10 +56,10 @@ func (self *BestSentimentAvgDownloader) get_result() string {
 
 func test_function() {
 	lines := []string{
-		"a,meme_url_1,2,0.23",
-		"b,meme_url_2,2,0.0",
-		"c,meme_url_3,2,0.87",
-		"d,meme_url_4,2,-0.89",
+		"meme_url_1,0.23",
+		"meme_url_2,0.0",
+		"meme_url_3,0.87",
+		"meme_url_4,-0.89",
 	}
 
 	downloader := NewDownloader()

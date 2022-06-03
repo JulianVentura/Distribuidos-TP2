@@ -3,8 +3,9 @@
         "mom_address": "amqp://rabbitmq"
     },
     "admin": {
-        "server_address": "admin:12345",
+        "process_name": "Admin",
         "log_level": "info",
+        "server_address": "admin:12345",
         "queues": {
             "posts": {
                 "name": "posts_q",
@@ -38,9 +39,8 @@
         }
     },
     "post_digestor": {
+        "process_name": "Post Digestor",
         "log_level": "info",
-        "previous_stage_finished": "post_stream_end",
-        "stage_finished": "post_digestor_end",
         "queues": {
             "input": {
                 "name": "posts_q",
@@ -55,6 +55,7 @@
         }
     },
     "post_score_adder": {
+        "process_name": "Post Score Adder",
         "log_level": "info",
         "queues": {
             "input": {
@@ -72,6 +73,7 @@
         }
     },
     "post_score_avg_calculator": {
+        "process_name": "Post Score Avg Calculator",
         "log_level": "info",
         "queues": {
             "input": {
@@ -90,6 +92,7 @@
         "quit_signal": "quit"
     },
     "post_above_avg_filter": {
+        "process_name": "Post Above Avg Filter",
         "log_level": "info",
         "queues": {
             "input_avg": {
@@ -114,6 +117,7 @@
         }
     },
     "comment_digestor": {
+        "process_name": "Comment Digestor",
         "log_level": "info",
         "queues": {
             "input": {
@@ -129,6 +133,7 @@
         }
     },
     "post_sentiment_avg_calculator": {
+        "process_name": "Post Sentiment Avg Calculator",
         "log_level": "info",
         "queues": {
             "input": {
@@ -146,7 +151,11 @@
         }
     },
     "sentiment_joiner": {
+        "process_name": "Sentiment Joiner",
         "log_level": "info",
+		"keep_id": false,
+		"base_body_size": 1,
+		"to_join_body_size": 1,
         "queues": {
             "base_input": {
                 "name": "",
@@ -170,7 +179,11 @@
         }
     },
     "student_joiner": {
+        "process_name": "Student Joiner",
         "log_level": "info",
+		"keep_id": false,
+		"base_body_size": 1,
+		"to_join_body_size": 0,
         "queues": {
             "base_input": {
                 "name": "",
@@ -194,6 +207,7 @@
         }
     },
     "student_comment_filter": {
+        "process_name": "Student Comment Filter",
         "log_level": "info",
         "queues": {
             "input": {
@@ -205,12 +219,13 @@
             },
             "result": {
                 "name": "student_comment_filter_result",
-                "class": "topic",
+                "class": "worker",
                 "direction": "write"
             }
         }
     },
     "best_sentiment_avg_downloader": {
+        "process_name": "Best Sentiment Avg Downloader",
         "log_level": "info",
         "queues": {
             "input": {

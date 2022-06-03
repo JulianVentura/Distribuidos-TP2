@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 
 	"distribuidos/tp2/server/common/consumer"
 	mom "distribuidos/tp2/server/common/message_middleware/message_middleware"
@@ -10,59 +11,49 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func main() {
-	// - Definir señal de quit
-	quit := worker.Start_quit_signal()
-	// - Definimos lista de colas
-	queues_list := []string{
-		"input",
-		"result",
-	}
+func worker_callback(envs map[string]string, queues map[string]chan mom.Message, quit chan bool) {
+	digestor := NewDigestor()
 
-	// - Config parse
-	config, err := worker.Init_config(queues_list)
-	if err != nil {
-		fmt.Printf("Error on config: %v", err)
+	lb, err := strconv.ParseUint(envs["load_balance"], 10, 64)
+	if err != nil || lb < 1 {
+		log.Errorf("load_balance config variable is not valid, must be positive", lb)
 		return
 	}
-
-	//- Logger init
-	if err := worker.Init_logger(config.Log_level); err != nil {
-		log.Fatalf("%s", err)
-	}
-	log.Info("Starting Comment Digestor...")
-
-	//- Print config
-	worker.Print_config(&config, "Comment Digestor")
-
-	// - Mom initialization
-	m_config := mom.MessageMiddlewareConfig{
-		Address:          config.Mom_address,
-		Notify_on_finish: true,
-	}
-
-	msg_middleware, err := mom.Start(m_config)
-	if err != nil {
-		log.Fatalf("Couldn't connect to mom: %v", err)
-	}
-
-	defer msg_middleware.Finish()
-	// - Queues initialization
-	queues, err := worker.Init_queues(msg_middleware, config.Queues)
-	if err != nil {
-		log.Fatalf("Couldn't connect to mom: %v", err)
-	}
-	// - Callback definition
-
-	digestor := NewDigestor()
-	callback := worker.Create_callback(&config, digestor.filter, queues["result"])
+	callback := worker.Create_load_balance_callback(
+		digestor.filter,
+		uint(lb),
+		envs["process_group"],
+		queues["result"])
 
 	// - Create and run the consumer
 	q := consumer.ConsumerQueues{Input: queues["input"]}
 	consumer, err := consumer.New(callback, q, quit)
 	if err != nil {
-		log.Fatalf("%v", err)
+		log.Errorf("%v", err)
+		return
 	}
 	consumer.Run()
-	// digestor.info()
+}
+
+func main() {
+	// - Start New Worker
+	cfg := worker.WorkerConfig{
+		Envs: []string{
+			"load_balance",
+			"process_group",
+		},
+		Queues: []string{
+			"input",
+			"result",
+		},
+	}
+
+	process_worker, err := worker.StartWorker(cfg)
+	if err != nil {
+		fmt.Printf("Error starting new process worker: %v\n", err)
+		return
+	}
+	defer process_worker.Finish()
+
+	process_worker.Run(worker_callback)
 }
