@@ -48,12 +48,12 @@ func (self *PostDigestor) filter(input string) (string, error) {
 	}
 
 	post_id := splits[post_id_idx]
-	post_meme := strings.ToLower(splits[post_meme_idx])
+	post_meme := splits[post_meme_idx]
 	post_score := splits[post_score_idx]
 
 	ok := true
 	ok = ok && self.post_id_r.MatchString(post_id)
-	ok = ok && self.meme_url_r.MatchString(post_meme)
+	ok = ok && self.meme_url_r.MatchString(strings.ToLower(post_meme))
 	if !ok {
 		return "", fmt.Errorf("invalid input")
 	}

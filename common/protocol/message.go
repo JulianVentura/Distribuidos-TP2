@@ -37,7 +37,7 @@ type CommentFinished struct { //Implements Encodable
 
 type Response struct { //Implements Encodable
 	Post_score_average  float64
-	Best_sentiment_meme string
+	Best_sentiment_meme []byte
 	School_memes        []string
 }
 
@@ -112,7 +112,7 @@ func (self *Response) encode() []byte {
 
 	message_id := encode8(ResponseOP)
 	score := encodeF64(self.Post_score_average)
-	meme := encode_string(self.Best_sentiment_meme)
+	meme := encode_byte_slice(self.Best_sentiment_meme)
 	school_memes := encode_string_slice(self.School_memes)
 
 	return append_slices([][]byte{message_id, score, meme, school_memes})
@@ -123,7 +123,7 @@ func (self *Response) fromEncoding(code []byte) error {
 	_, start := decode8(code)
 	avg, n := decodeF64(code[start:])
 	start += n
-	meme, n := decode_string(code[start:])
+	meme, n := decode_byte_slice(code[start:])
 	start += n
 	school_memes, _ := decode_string_slice(code[start:])
 

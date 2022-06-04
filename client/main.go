@@ -56,13 +56,15 @@ func InitConfig() (client.ClientConfig, error) {
 	}
 
 	c_config := client.ClientConfig{
-		Id:                  v.GetUint("id"),
-		Log_level:           v.GetString("log.level"),
-		Server_address:      v.GetString("server.address"),
-		Loop_period_post:    v.GetDuration("loop-period.post"),
-		Loop_period_comment: v.GetDuration("loop-period.comment"),
-		File_path_post:      v.GetString("files-path.post"),
-		File_path_comment:   v.GetString("files-path.comment"),
+		Id:                       v.GetUint("id"),
+		Log_level:                v.GetString("log.level"),
+		Server_address:           v.GetString("server.address"),
+		Loop_period_post:         v.GetDuration("loop-period.post"),
+		Loop_period_comment:      v.GetDuration("loop-period.comment"),
+		File_path_post:           v.GetString("files-path.post"),
+		File_path_comment:        v.GetString("files-path.comment"),
+		File_path_sentiment_meme: v.GetString("files-path.sentiment-meme"),
+		File_path_school_memes:   v.GetString("files-path.school-memes"),
 	}
 
 	return c_config, nil
@@ -76,6 +78,8 @@ func PrintConfig(c_config *client.ClientConfig) {
 	log.Printf(" - Loop Period Comment: %v\n", c_config.Loop_period_comment)
 	log.Printf(" - File Path Post: %v\n", c_config.File_path_post)
 	log.Printf(" - File Path Comment: %v\n", c_config.File_path_comment)
+	log.Printf(" - File Path Sentiment Meme: %v\n", c_config.File_path_sentiment_meme)
+	log.Printf(" - File Path School Memes: %v\n", c_config.File_path_school_memes)
 	log.Print("----\n\n")
 }
 

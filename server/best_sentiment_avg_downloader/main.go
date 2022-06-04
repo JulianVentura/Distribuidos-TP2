@@ -24,11 +24,10 @@ func worker_callback(envs map[string]string, queues map[string]chan mom.Message,
 	consumer.Run()
 
 	result := downloader.get_result()
-	log.Infof("AVG: %v", result)
-
+	log.Infof("Meme of size %v", len(result))
 	//- Send the result into result queue
 	queues["result"] <- mom.Message{
-		Body: downloader.get_result(),
+		Body: result,
 	}
 }
 

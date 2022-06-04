@@ -16,13 +16,15 @@ import (
 )
 
 type ClientConfig struct {
-	Id                  uint
-	Log_level           string
-	Server_address      string
-	Loop_period_post    time.Duration
-	Loop_period_comment time.Duration
-	File_path_post      string
-	File_path_comment   string
+	Id                       uint
+	Log_level                string
+	Server_address           string
+	Loop_period_post         time.Duration
+	Loop_period_comment      time.Duration
+	File_path_post           string
+	File_path_comment        string
+	File_path_sentiment_meme string
+	File_path_school_memes   string
 }
 
 type Client struct {
@@ -138,7 +140,6 @@ func (self *Client) run() {
 		self.server.Close()
 		self.has_finished <- true
 	}()
-	//Problema: Se entra en loop cuando alguno de los dos se cierra
 Loop:
 	for {
 		select {
@@ -153,7 +154,7 @@ Loop:
 				break Loop
 			}
 		case m := <-self.server_response:
-			should_finish := parse_server_response(m)
+			should_finish := self.parse_server_response(m)
 			if should_finish {
 				break Loop
 			}
@@ -167,7 +168,7 @@ Loop:
 func (self *Client) wait_for_server_response() {
 	select {
 	case m := <-self.server_response:
-		parse_server_response(m)
+		self.parse_server_response(m)
 	case <-self.quit:
 		self.quit <- true
 	}
@@ -236,11 +237,11 @@ func (self *Client) receive_from_server() {
 	}
 }
 
-func parse_server_response(response protocol.Encodable) bool {
+func (self *Client) parse_server_response(response protocol.Encodable) bool {
 
 	switch t := response.(type) {
 	case *protocol.Response:
-		print_server_response(t)
+		self.process_server_response(t)
 	case *protocol.Error:
 		fmt.Printf("Error received from server: %v\n", t.Message)
 	}
@@ -248,12 +249,44 @@ func parse_server_response(response protocol.Encodable) bool {
 	return true
 }
 
-func print_server_response(response *protocol.Response) {
+func (self *Client) process_server_response(response *protocol.Response) {
 	log.Infof("Calculation Results: ")
 	log.Infof(" - Post Score AVG: %v", response.Post_score_average)
-	log.Infof(" - Best AVG Sentiment Meme: %v", response.Best_sentiment_meme)
-	log.Infof(" - School Memes:")
-	for _, meme := range response.School_memes {
-		log.Infof("   * %v", meme)
+	log.Infof(" - Best AVG Sentiment Meme downloaded to %v", self.config.File_path_sentiment_meme)
+	log.Infof(" - School Memes written to %v", self.config.File_path_school_memes)
+
+	//Save memes
+	err := save(response.Best_sentiment_meme, self.config.File_path_sentiment_meme)
+	if err != nil {
+		log.Errorf("Couldn't save meme: %v", err)
 	}
+	err = save([]byte(strings.Join(response.School_memes, "\n")), self.config.File_path_school_memes)
+	if err != nil {
+		log.Errorf("Couldn't write school memes: %v", err)
+	}
+}
+
+func save(file []byte, path string) error {
+	// Create the file
+	out, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	return write_all(out, file)
+}
+
+func write_all(out io.Writer, to_write []byte) error {
+	size := len(to_write)
+	written := 0
+	for written < size {
+		n, err := out.Write(to_write[written:])
+		if err != nil {
+			return err
+		}
+		written += n
+	}
+
+	return nil
 }

@@ -19,5 +19,6 @@ COPY ./server/best_sentiment_avg_downloader ./server/best_sentiment_avg_download
 RUN CGO_ENABLED=0 GOOS=linux go build -o ./bin/best_sentiment_avg_downloader ./server/best_sentiment_avg_downloader
 
 FROM busybox:latest
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /build/bin/best_sentiment_avg_downloader /downloader
 ENTRYPOINT ["/bin/sh"]

@@ -1,7 +1,6 @@
 package message_middleware
 
 import (
-	"distribuidos/tp2/server/common/utils"
 	"fmt"
 	"sync"
 	"time"
@@ -53,13 +52,7 @@ func writer_worker(
 }
 
 func (self *WriteWorker) encode_and_send(topic string, messages []string) {
-	parser := utils.CustomParser(rune(0x1e))
-	msg := Message{
-		Body:  parser.Write(messages),
-		Topic: topic,
-	}
-
-	if err := self.send_message(msg); err != nil {
+	if err := self.send_messages(messages, topic); err != nil {
 		log.Errorf("Error sending message on writer of %v", self.queue_name)
 		return
 	}
@@ -121,44 +114,19 @@ func (self *WriteWorker) notify_finish() {
 	}
 
 	target_queue := "admin_control"
-	message := fmt.Sprintf("finish,%v", self.queue_name)
-
-	err := self.output.Publish(
-		"",           // exchange
-		target_queue, // routing key
-		false,        // mandatory
-		false,
-		amqp.Publishing{
-			ContentType: "text/plain",
-			Body:        []byte(message),
-		})
-
+	msg := fmt.Sprintf("finish,%v", self.queue_name)
+	err := publish([]string{msg}, "", target_queue, self.output)
 	if err != nil {
 		log.Errorf("Error trying to notify mom admin: %v", err)
 	}
 }
 
-func (self *WriteWorker) send_message(msg Message) error {
+func (self *WriteWorker) send_messages(messages []string, topic string) error {
 	var rout_key string
 	if self.routing_key_by_msg {
-		rout_key = msg.Topic
+		rout_key = topic
 	} else {
 		rout_key = self.routing_key
 	}
-	err := self.output.Publish(
-		self.exchange, // exchange
-		rout_key,      // routing key
-		false,         // mandatory
-		false,
-		amqp.Publishing{
-			ContentType: "text/plain",
-			Body:        []byte(msg.Body),
-		})
-
-	if err != nil {
-		log.Errorf("Error trying to publish a message to mom: %v", err)
-		return err
-	}
-
-	return nil
+	return publish(messages, self.exchange, rout_key, self.output)
 }

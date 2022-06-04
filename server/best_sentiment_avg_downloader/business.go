@@ -2,8 +2,9 @@ package main
 
 import (
 	"distribuidos/tp2/server/common/utils"
-	"fmt"
+	"io"
 	"math"
+	"net/http"
 	"strconv"
 
 	log "github.com/sirupsen/logrus"
@@ -51,27 +52,17 @@ func (self *BestSentimentAvgDownloader) work(input string) {
 }
 
 func (self *BestSentimentAvgDownloader) get_result() string {
-	return self.Parser.Write([]string{self.Best})
-}
-
-func test_function() {
-	lines := []string{
-		"meme_url_1,0.23",
-		"meme_url_2,0.0",
-		"meme_url_3,0.87",
-		"meme_url_4,-0.89",
+	resp, err := http.Get(self.Best)
+	if err != nil {
+		log.Errorf("Error getting meme of url %v: %v", self.Best, err)
+		return ""
 	}
+	defer resp.Body.Close()
 
-	downloader := NewDownloader()
-	downloader.Parser = utils.CustomParser(',')
-
-	for _, line := range lines {
-		downloader.work(line)
+	file, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Errorf("Error downloading meme of url %v: %v", self.Best, err)
+		return ""
 	}
-
-	if downloader.get_result() == "meme_url_3" {
-		fmt.Println("OK")
-	} else {
-		fmt.Printf("ERROR: %v", downloader.get_result())
-	}
+	return string(file) //We can "see" the byte slice as string and vice versa without loosing any information
 }

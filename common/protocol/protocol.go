@@ -63,6 +63,11 @@ func encode_F64slice(slice []float64) []byte {
 	return append(len, buffer...)
 }
 
+func encode_byte_slice(slice []byte) []byte {
+	encoded_size := encode32(uint32(len(slice)))
+	return append(encoded_size, slice...)
+}
+
 func decode_F64slice(encoded []byte) ([]float64, uint32) {
 	float_size := uint32(8)
 	len, start := decode32(encoded)
@@ -101,6 +106,14 @@ func decode_string_slice(encoded []byte) ([]string, uint32) {
 	}
 
 	return slice, byte_count
+}
+
+func decode_byte_slice(encoded []byte) ([]byte, uint32) {
+
+	s_len, n := decode32(encoded)
+	slice := encoded[n : s_len+n]
+
+	return slice, s_len + n
 }
 
 func decodeF64(encoded []byte) (float64, uint32) {

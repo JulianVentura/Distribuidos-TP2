@@ -2,7 +2,6 @@ package message_middleware
 
 import (
 	Err "distribuidos/tp2/common/errors"
-	"distribuidos/tp2/server/common/utils"
 	"fmt"
 
 	log "github.com/sirupsen/logrus"
@@ -118,7 +117,6 @@ func (self *MessageMiddleware) create_read_worker_queue(config *QueueConfig) (ch
 	channel := make(chan Message, self.config.Channel_buffer_size)
 	var q_channel <-chan amqp.Delivery
 	var err error
-	var queue_origin string
 
 	if len(config.Topic) > 0 {
 		if len(config.Source) < 1 {
@@ -132,8 +130,6 @@ func (self *MessageMiddleware) create_read_worker_queue(config *QueueConfig) (ch
 		if err != nil {
 			return nil, fmt.Errorf("Error trying to create a read worker queue %v: %v", config.Name, err)
 		}
-
-		queue_origin = config.Source
 	} else {
 		if len(config.Name) < 1 {
 			return nil, fmt.Errorf("Error trying to create a read worker queue: name not provided")
@@ -148,13 +144,8 @@ func (self *MessageMiddleware) create_read_worker_queue(config *QueueConfig) (ch
 		if err != nil {
 			return nil, Err.Ctx("Couldn't bind queue to exchange", err)
 		}
-		queue_origin = config.Name
 	}
 
-	err = self.notify_new_read_queue_to_admin(queue_origin)
-	if err != nil {
-		return nil, fmt.Errorf("Error notifyng new read queue to admin: %v", err)
-	}
 	//We invoke a new worker, which will listen for new messages on the queue
 	go read_worker(q_channel, channel)
 
@@ -203,10 +194,9 @@ func (self *MessageMiddleware) create_read_fanout_queue(config *QueueConfig) (ch
 
 func read_worker(input <-chan amqp.Delivery, output chan Message) {
 	//Will continue until the connection is closed
-	parser := utils.CustomParser(rune(0x1e))
 	for msg := range input {
-		body := string(msg.Body)
-		if body == "finish" {
+		messages := decode_string_slice(msg.Body)
+		if messages[0] == "finish" {
 			err := msg.Nack(false, true)
 			if err != nil {
 				log.Debugf("Error making Nack of message")
@@ -219,8 +209,7 @@ func read_worker(input <-chan amqp.Delivery, output chan Message) {
 		if err != nil {
 			log.Errorf("Failed to ack message")
 		}
-		splits := parser.Read(body)
-		for _, m := range splits {
+		for _, m := range messages {
 			output <- Message{
 				Body:  m,
 				Topic: msg.RoutingKey,
@@ -261,51 +250,6 @@ func (self *MessageMiddleware) initialize_queue_and_exchange(
 		return nil, Err.Ctx("Couldn't bind queue to exchange", err)
 	}
 	return q_channel, nil
-}
-
-func (self *MessageMiddleware) exchange_declare(name string, class string) error {
-	return self.channel.ExchangeDeclare(
-		name,  // name
-		class, // type
-		false, // durable
-		false, // auto-deleted
-		false, // internal
-		false, // no-wait
-		nil,   // arguments
-	)
-}
-
-func (self *MessageMiddleware) queue_declare(name string, exclusive bool) (amqp.Queue, error) {
-	return self.channel.QueueDeclare(
-		name,      // name
-		false,     // durable
-		false,     // delete when unused
-		exclusive, // exclusive
-		false,     // no-wait
-		nil,       // arguments
-	)
-}
-
-func (self *MessageMiddleware) queue_bind(name string, routing_key string, exchange string) error {
-	return self.channel.QueueBind(
-		name,        // queue name
-		routing_key, // routing key
-		exchange,    // exchange
-		false,
-		nil,
-	)
-}
-
-func (self *MessageMiddleware) consume_queue(name string) (<-chan amqp.Delivery, error) {
-	return self.channel.Consume(
-		name,  // queue
-		"",    // consumer
-		false, // auto-ack
-		false, // exclusive
-		false, // no-local
-		false, // no-wait
-		nil,   // args
-	)
 }
 
 func (self *MessageMiddleware) Write_queue(config QueueConfig) (chan Message, error) {
@@ -418,6 +362,51 @@ func (self *MessageMiddleware) create_write_fanout_queue(config *QueueConfig) (c
 	return channel, nil
 }
 
+func (self *MessageMiddleware) exchange_declare(name string, class string) error {
+	return self.channel.ExchangeDeclare(
+		name,  // name
+		class, // type
+		false, // durable
+		false, // auto-deleted
+		false, // internal
+		false, // no-wait
+		nil,   // arguments
+	)
+}
+
+func (self *MessageMiddleware) queue_declare(name string, exclusive bool) (amqp.Queue, error) {
+	return self.channel.QueueDeclare(
+		name,      // name
+		false,     // durable
+		false,     // delete when unused
+		exclusive, // exclusive
+		false,     // no-wait
+		nil,       // arguments
+	)
+}
+
+func (self *MessageMiddleware) queue_bind(name string, routing_key string, exchange string) error {
+	return self.channel.QueueBind(
+		name,        // queue name
+		routing_key, // routing key
+		exchange,    // exchange
+		false,
+		nil,
+	)
+}
+
+func (self *MessageMiddleware) consume_queue(name string) (<-chan amqp.Delivery, error) {
+	return self.channel.Consume(
+		name,  // queue
+		"",    // consumer
+		false, // auto-ack
+		false, // exclusive
+		false, // no-local
+		false, // no-wait
+		nil,   // args
+	)
+}
+
 func (self *MessageMiddleware) notify_new_write_queue_to_admin(config *QueueConfig) error {
 
 	//TODO: Cambiar el nombre de la variable a algo que tenga más sentido
@@ -434,43 +423,7 @@ func (self *MessageMiddleware) notify_new_write_queue_to_admin(config *QueueConf
 		config.Source,
 		config.Direction)
 
-	err := self.channel.Publish(
-		"",           // exchange
-		target_queue, // routing key
-		false,        // mandatory
-		false,
-		amqp.Publishing{
-			ContentType: "text/plain",
-			Body:        []byte(message),
-		})
-
-	return err
-}
-
-func (self *MessageMiddleware) notify_new_read_queue_to_admin(queue_origin string) error {
-
-	//TODO: Cambiar el nombre de la variable a algo que tenga más sentido
-	//Lo que estamos haciendo acá es no enviar el mensaje si se trata del admin
-	if true { //Change
-		return nil
-	}
-
-	if !self.config.Notify_on_finish {
-		return nil
-	}
-
-	target_queue := "admin_control"
-	message := fmt.Sprintf("new_read,%v", queue_origin)
-
-	err := self.channel.Publish(
-		"",           // exchange
-		target_queue, // routing key
-		false,        // mandatory
-		false,
-		amqp.Publishing{
-			ContentType: "text/plain",
-			Body:        []byte(message),
-		})
+	err := publish([]string{message}, "", target_queue, self.channel)
 
 	return err
 }
