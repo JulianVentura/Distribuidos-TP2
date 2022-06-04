@@ -10,7 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func worker_callback(envs map[string]string, queues map[string]chan mom.Message, quit chan bool) {
+func workerCallback(envs map[string]string, queues map[string]chan mom.Message, quit chan bool) {
 	digestor := NewDigestor()
 
 	lb, err := strconv.ParseUint(envs["load_balance"], 10, 64)
@@ -18,7 +18,7 @@ func worker_callback(envs map[string]string, queues map[string]chan mom.Message,
 		log.Errorf("load_balance config variable is not valid, must be positive", lb)
 		return
 	}
-	callback := worker.Create_load_balance_callback(
+	callback := worker.CreateLoadBalanceCallback(
 		digestor.filter,
 		uint(lb),
 		envs["process_group"],
@@ -47,12 +47,12 @@ func main() {
 		},
 	}
 
-	process_worker, err := worker.StartWorker(cfg)
+	processWorker, err := worker.StartWorker(cfg)
 	if err != nil {
 		fmt.Printf("Error starting new process worker: %v\n", err)
 		return
 	}
-	defer process_worker.Finish()
+	defer processWorker.Finish()
 
-	process_worker.Run(worker_callback)
+	processWorker.Run(workerCallback)
 }

@@ -11,7 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func worker_callback(envs map[string]string, queues map[string]chan mom.Message, quit chan bool) {
+func workerCallback(envs map[string]string, queues map[string]chan mom.Message, quit chan bool) {
 	// - Create the business structure and callback
 	lb, err := strconv.ParseUint(envs["load_balance"], 10, 64)
 	if err != nil || lb < 1 {
@@ -19,7 +19,7 @@ func worker_callback(envs map[string]string, queues map[string]chan mom.Message,
 		return
 	}
 	filter := NewFilter()
-	callback := worker.Create_load_balance_callback(
+	callback := worker.CreateLoadBalanceCallback(
 		filter.filter,
 		uint(lb),
 		envs["process_group"],
@@ -47,13 +47,13 @@ func main() {
 		},
 	}
 
-	process_worker, err := worker.StartWorker(cfg)
+	processWorker, err := worker.StartWorker(cfg)
 	if err != nil {
 		fmt.Printf("Error starting new process worker: %v\n", err)
 		return
 	}
-	defer process_worker.Finish()
+	defer processWorker.Finish()
 
 	// - Run the process worker
-	process_worker.Run(worker_callback)
+	processWorker.Run(workerCallback)
 }

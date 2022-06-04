@@ -42,78 +42,78 @@ func encode8(number uint8) []byte {
 	return buffer
 }
 
-func encode_string(str string) []byte {
-	encoded_size := encode32(uint32(len(str)))
+func encodeString(str string) []byte {
+	encodedSize := encode32(uint32(len(str)))
 	//UTF-8 Encoding
-	encoded_str := []byte(str)
-	return append(encoded_size, encoded_str...)
+	encodedStr := []byte(str)
+	return append(encodedSize, encodedStr...)
 }
 
-func encode_F64slice(slice []float64) []byte {
-	float_size := 8
+func encodeF64slice(slice []float64) []byte {
+	floatSize := 8
 	l := len(slice)
-	buffer := make([]byte, l*float_size) //Buffer for encoded slice
+	buffer := make([]byte, l*floatSize) //Buffer for encoded slice
 	len := encode32(uint32(l))
 
 	for i := 0; i < l; i++ {
-		slc_idx := float_size * i
-		binary.BigEndian.PutUint64(buffer[slc_idx:], math.Float64bits(slice[i]))
+		slcIdx := floatSize * i
+		binary.BigEndian.PutUint64(buffer[slcIdx:], math.Float64bits(slice[i]))
 	}
 
 	return append(len, buffer...)
 }
 
-func encode_byte_slice(slice []byte) []byte {
-	encoded_size := encode32(uint32(len(slice)))
-	return append(encoded_size, slice...)
+func encodeByteSlice(slice []byte) []byte {
+	encodedSize := encode32(uint32(len(slice)))
+	return append(encodedSize, slice...)
 }
 
-func decode_F64slice(encoded []byte) ([]float64, uint32) {
-	float_size := uint32(8)
+func decodeF64slice(encoded []byte) ([]float64, uint32) {
+	floatSize := uint32(8)
 	len, start := decode32(encoded)
 	slice := make([]float64, len)
 
 	for i := uint32(0); i < len; i++ {
-		slc_idx := float_size*i + start
-		decoded := binary.BigEndian.Uint64(encoded[slc_idx:])
+		slcIdx := floatSize*i + start
+		decoded := binary.BigEndian.Uint64(encoded[slcIdx:])
 		slice[i] = math.Float64frombits(decoded)
 	}
 
-	return slice, len*float_size + start
+	return slice, len*floatSize + start
 }
 
-func encode_string_slice(slice []string) []byte {
+func encodeStringSlice(slice []string) []byte {
 	l := uint32(len(slice))
-	encoded_strings := make([][]byte, l+1)
-	encoded_strings[0] = encode32(l)
+	encodedStrings := make([][]byte, l+1)
+	encodedStrings[0] = encode32(l)
 
 	for i, str := range slice {
-		encoded_strings[i+1] = encode_string(str)
+		encodedStrings[i+1] = encodeString(str)
 	}
 
-	return append_slices(encoded_strings)
+	return appendSlices(encodedStrings)
 }
 
-func decode_string_slice(encoded []byte) ([]string, uint32) {
+func decodeStringSlice(encoded []byte) ([]string, uint32) {
 	len, start := decode32(encoded)
 	slice := make([]string, len)
 
-	byte_count := start
+	byteCount := start
 	for i := uint32(0); i < len; i++ {
-		str, n := decode_string(encoded[byte_count:])
+		str, n := decodeString(encoded[byteCount:])
 		slice[i] = str
-		byte_count += n
+		byteCount += n
 	}
 
-	return slice, byte_count
+	return slice, byteCount
 }
 
-func decode_byte_slice(encoded []byte) ([]byte, uint32) {
+func decodeByteSlice(encoded []byte) ([]byte, uint32) {
 
-	s_len, n := decode32(encoded)
-	slice := encoded[n : s_len+n]
+	sLen, n := decode32(encoded)
+	slice := encoded[n : sLen+n]
 
-	return slice, s_len + n
+	return slice, sLen + n
 }
 
 func decodeF64(encoded []byte) (float64, uint32) {
@@ -138,32 +138,32 @@ func decode8(encoded []byte) (uint8, uint32) {
 	return uint8(encoded[0]), 1
 }
 
-func decode_string(encoded []byte) (string, uint32) {
+func decodeString(encoded []byte) (string, uint32) {
 
-	str_len, n := decode32(encoded)
-	str := string(encoded[n : str_len+n])
+	strLen, n := decode32(encoded)
+	str := string(encoded[n : strLen+n])
 
-	return str, str_len + n
+	return str, strLen + n
 }
 
 func Send(socket *socket.TCPConnection, message Encodable) error {
-	encoded_msg := message.encode()
-	size := uint32(len(encoded_msg))
-	msg_len := encode32(size)
-	to_send := append(msg_len, encoded_msg...)
+	encodedMsg := message.encode()
+	size := uint32(len(encodedMsg))
+	msgLen := encode32(size)
+	toSend := append(msgLen, encodedMsg...)
 
-	return socket.Send(to_send)
+	return socket.Send(toSend)
 }
 
-func Receive_with_timeout(socket *socket.TCPConnection, t time.Duration) (Encodable, error) {
+func ReceiveWithTimeout(socket *socket.TCPConnection, t time.Duration) (Encodable, error) {
 	buffer := make([]byte, 4)
-	err := socket.Receive_with_timeout(buffer, t)
+	err := socket.ReceiveWithTimeout(buffer, t)
 	if err != nil {
 		return nil, err
 	}
-	msg_len, _ := decode32(buffer)
-	buffer = make([]byte, msg_len)
-	err = socket.Receive_with_timeout(buffer, t)
+	msgLen, _ := decode32(buffer)
+	buffer = make([]byte, msgLen)
+	err = socket.ReceiveWithTimeout(buffer, t)
 	if err != nil {
 		return nil, err
 	}
@@ -178,8 +178,8 @@ func Receive(socket *socket.TCPConnection) (Encodable, error) {
 	if err != nil {
 		return nil, err
 	}
-	msg_len, _ := decode32(buffer)
-	buffer = make([]byte, msg_len)
+	msgLen, _ := decode32(buffer)
+	buffer = make([]byte, msgLen)
 	err = socket.Receive(buffer)
 	if err != nil {
 		return nil, err
@@ -189,7 +189,7 @@ func Receive(socket *socket.TCPConnection) (Encodable, error) {
 	return decoded, err
 }
 
-func append_slices(slices [][]byte) []byte {
+func appendSlices(slices [][]byte) []byte {
 	size := 0
 	for _, slice := range slices {
 		size += len(slice)

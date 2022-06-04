@@ -39,12 +39,12 @@ func (self *PostScoreAdder) add(input string) {
 	self.Sum += score
 }
 
-func (self *PostScoreAdder) get_result() string {
+func (self *PostScoreAdder) getResult() string {
 	result := []string{fmt.Sprint(self.Sum), fmt.Sprint(self.Counter)}
 	return self.Parser.Write(result)
 }
 
-func test_function() {
+func testFunction() {
 	lines := []string{
 		"123,http://hola.png,14",
 		"123,http://hola.png,-2",
@@ -60,7 +60,7 @@ func test_function() {
 		work(line)
 	}
 
-	if adder.get_result() == "192,4" {
+	if adder.getResult() == "192,4" {
 		fmt.Println("OK")
 	} else {
 		fmt.Println("ERROR")

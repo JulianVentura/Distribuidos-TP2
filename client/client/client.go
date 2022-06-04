@@ -16,67 +16,67 @@ import (
 )
 
 type ClientConfig struct {
-	Id                       uint
-	Log_level                string
-	Server_address           string
-	Loop_period_post         time.Duration
-	Loop_period_comment      time.Duration
-	File_path_post           string
-	File_path_comment        string
-	File_path_sentiment_meme string
-	File_path_school_memes   string
+	Id                    uint
+	LogLevel              string
+	ServerAddress         string
+	LoopPeriodPost        time.Duration
+	LoopPeriodComment     time.Duration
+	FilePathPost          string
+	FilePathComment       string
+	FilePathSentimentMeme string
+	FilePathSchoolMemes   string
 }
 
 type Client struct {
-	server          *socket.TCPConnection
-	config          ClientConfig
-	posts_sent      uint
-	comments_sent   uint
-	to_send         chan protocol.Encodable
-	server_response chan protocol.Encodable
-	finished        sync.WaitGroup
-	quit            chan bool
-	has_finished    chan bool
+	server         *socket.TCPConnection
+	config         ClientConfig
+	postsSent      uint
+	commentsSent   uint
+	toSend         chan protocol.Encodable
+	serverResponse chan protocol.Encodable
+	finished       sync.WaitGroup
+	quit           chan bool
+	hasFinished    chan bool
 }
 
 func Start(config ClientConfig) (*Client, error) {
-	server, err := socket.NewClient(config.Server_address)
+	server, err := socket.NewClient(config.ServerAddress)
 	// var err error = nil
 	if err != nil {
-		msg := fmt.Sprintf("Connection with server on address %v failed", config.Server_address)
+		msg := fmt.Sprintf("Connection with server on address %v failed", config.ServerAddress)
 		return nil, Err.Ctx(msg, err)
 	}
 
 	log.Infof("Connection with server established")
 	client := &Client{
-		server:          server,
-		config:          config,
-		posts_sent:      0,
-		comments_sent:   0,
-		to_send:         make(chan protocol.Encodable, 1000),
-		server_response: make(chan protocol.Encodable, 2),
-		quit:            make(chan bool, 2),
-		has_finished:    make(chan bool, 2),
-		finished:        sync.WaitGroup{},
+		server:         server,
+		config:         config,
+		postsSent:      0,
+		commentsSent:   0,
+		toSend:         make(chan protocol.Encodable, 1000),
+		serverResponse: make(chan protocol.Encodable, 2),
+		quit:           make(chan bool, 2),
+		hasFinished:    make(chan bool, 2),
+		finished:       sync.WaitGroup{},
 	}
 
-	post_chan := make(chan string, 100)
-	comment_chan := make(chan string, 100)
+	postChann := make(chan string, 100)
+	commentChann := make(chan string, 100)
 
-	err = read_from_file(
-		config.File_path_post,
-		config.Loop_period_post,
-		post_chan,
+	err = readFromFile(
+		config.FilePathPost,
+		config.LoopPeriodPost,
+		postChann,
 		client.quit,
 	)
 	if err != nil {
 		client.quit <- true
 		return nil, err
 	}
-	err = read_from_file(
-		config.File_path_comment,
-		config.Loop_period_comment,
-		comment_chan,
+	err = readFromFile(
+		config.FilePathComment,
+		config.LoopPeriodComment,
+		commentChann,
 		client.quit,
 	)
 	if err != nil {
@@ -85,34 +85,34 @@ func Start(config ClientConfig) (*Client, error) {
 	}
 
 	go func() {
-		for m := range post_chan {
+		for m := range postChann {
 			log.Debugf("Sending post %s", m)
-			client.posts_sent += 1
-			if client.posts_sent%10000 == 0 {
-				log.Infof("Se enviaron %v posts", client.posts_sent)
+			client.postsSent += 1
+			if client.postsSent%10000 == 0 {
+				log.Infof("Se enviaron %v posts", client.postsSent)
 			}
-			client.to_send <- &protocol.Post{
+			client.toSend <- &protocol.Post{
 				Post: m,
 			}
 		}
 		log.Infof("Posts finished")
-		client.to_send <- &protocol.PostFinished{}
+		client.toSend <- &protocol.PostFinished{}
 		client.finished.Done()
 	}()
 
 	go func() {
-		for m := range comment_chan {
+		for m := range commentChann {
 			log.Debugf("Sending comment %s", m)
-			client.comments_sent += 1
-			if client.comments_sent%10000 == 0 {
-				log.Infof("Se enviaron %v comments", client.comments_sent)
+			client.commentsSent += 1
+			if client.commentsSent%10000 == 0 {
+				log.Infof("Se enviaron %v comments", client.commentsSent)
 			}
-			client.to_send <- &protocol.Comment{
+			client.toSend <- &protocol.Comment{
 				Comment: m,
 			}
 		}
 		log.Infof("Comments finished")
-		client.to_send <- &protocol.CommentFinished{}
+		client.toSend <- &protocol.CommentFinished{}
 		client.finished.Done()
 	}()
 
@@ -120,10 +120,10 @@ func Start(config ClientConfig) (*Client, error) {
 
 	go func() {
 		client.finished.Wait()
-		close(client.to_send)
+		close(client.toSend)
 	}()
 
-	go client.receive_from_server()
+	go client.receiveFromServer()
 	go client.run()
 
 	return client, nil
@@ -132,20 +132,20 @@ func Start(config ClientConfig) (*Client, error) {
 func (self *Client) Finish() {
 	self.quit <- true
 	self.finished.Wait()
-	<-self.has_finished
+	<-self.hasFinished
 }
 
 func (self *Client) run() {
 	defer func() {
 		self.server.Close()
-		self.has_finished <- true
+		self.hasFinished <- true
 	}()
 Loop:
 	for {
 		select {
-		case m, more := <-self.to_send:
+		case m, more := <-self.toSend:
 			if !more {
-				self.wait_for_server_response()
+				self.waitForServerResponse()
 				break Loop
 			}
 			err := protocol.Send(self.server, m)
@@ -153,8 +153,8 @@ Loop:
 				log.Error(Err.Ctx("Error sending to server. ", err))
 				break Loop
 			}
-		case m := <-self.server_response:
-			should_finish := self.parse_server_response(m)
+		case m := <-self.serverResponse:
+			should_finish := self.parseServerResponse(m)
 			if should_finish {
 				break Loop
 			}
@@ -165,18 +165,18 @@ Loop:
 	}
 }
 
-func (self *Client) wait_for_server_response() {
+func (self *Client) waitForServerResponse() {
 	select {
-	case m := <-self.server_response:
-		self.parse_server_response(m)
+	case m := <-self.serverResponse:
+		self.parseServerResponse(m)
 	case <-self.quit:
 		self.quit <- true
 	}
 }
 
-func read_from_file(
+func readFromFile(
 	path string,
-	sleep_time time.Duration,
+	sleepTime time.Duration,
 	output chan string,
 	quit chan bool) error {
 
@@ -212,7 +212,7 @@ func read_from_file(
 				}
 				log.Debugf("Reading %s", strings.Join(records, ","))
 				output <- strings.Join(records, string(sep))
-				time.Sleep(sleep_time)
+				time.Sleep(sleepTime)
 			}
 		}
 	}()
@@ -220,7 +220,7 @@ func read_from_file(
 	return nil
 }
 
-func (self *Client) receive_from_server() {
+func (self *Client) receiveFromServer() {
 
 	select {
 	case <-self.quit:
@@ -232,16 +232,16 @@ func (self *Client) receive_from_server() {
 			log.Error(Err.Ctx("Error receiving response from server", err))
 			return
 		}
-		self.server_response <- response
+		self.serverResponse <- response
 		return
 	}
 }
 
-func (self *Client) parse_server_response(response protocol.Encodable) bool {
+func (self *Client) parseServerResponse(response protocol.Encodable) bool {
 
 	switch t := response.(type) {
 	case *protocol.Response:
-		self.process_server_response(t)
+		self.processServerResponse(t)
 	case *protocol.Error:
 		fmt.Printf("Error received from server: %v\n", t.Message)
 	}
@@ -249,18 +249,18 @@ func (self *Client) parse_server_response(response protocol.Encodable) bool {
 	return true
 }
 
-func (self *Client) process_server_response(response *protocol.Response) {
+func (self *Client) processServerResponse(response *protocol.Response) {
 	log.Infof("Calculation Results: ")
-	log.Infof(" - Post Score AVG: %v", response.Post_score_average)
-	log.Infof(" - Best AVG Sentiment Meme downloaded to %v", self.config.File_path_sentiment_meme)
-	log.Infof(" - School Memes written to %v", self.config.File_path_school_memes)
+	log.Infof(" - Post Score AVG: %v", response.PostScoreAvg)
+	log.Infof(" - Best AVG Sentiment Meme downloaded to %v", self.config.FilePathSentimentMeme)
+	log.Infof(" - School Memes written to %v", self.config.FilePathSchoolMemes)
 
 	//Save memes
-	err := save(response.Best_sentiment_meme, self.config.File_path_sentiment_meme)
+	err := save(response.BestSentimentMeme, self.config.FilePathSentimentMeme)
 	if err != nil {
 		log.Errorf("Couldn't save meme: %v", err)
 	}
-	err = save([]byte(strings.Join(response.School_memes, "\n")), self.config.File_path_school_memes)
+	err = save([]byte(strings.Join(response.SchoolMemes, "\n")), self.config.FilePathSchoolMemes)
 	if err != nil {
 		log.Errorf("Couldn't write school memes: %v", err)
 	}
@@ -274,14 +274,14 @@ func save(file []byte, path string) error {
 	}
 	defer out.Close()
 
-	return write_all(out, file)
+	return writeAll(out, file)
 }
 
-func write_all(out io.Writer, to_write []byte) error {
-	size := len(to_write)
+func writeAll(out io.Writer, toWrite []byte) error {
+	size := len(toWrite)
 	written := 0
 	for written < size {
-		n, err := out.Write(to_write[written:])
+		n, err := out.Write(toWrite[written:])
 		if err != nil {
 			return err
 		}

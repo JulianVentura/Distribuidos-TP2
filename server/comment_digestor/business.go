@@ -9,79 +9,79 @@ import (
 )
 
 type CommentDigestor struct {
-	permalink_r      *regexp.Regexp
-	sentiment_r      *regexp.Regexp
-	body_r           *regexp.Regexp
-	Parser           utils.MessageParser
-	received_counter uint //TODO: Delete this
-	written_counter  uint
+	permalingRegex  *regexp.Regexp
+	sentimentRegex  *regexp.Regexp
+	bodyRegex       *regexp.Regexp
+	Parser          utils.MessageParser
+	receivedCounter uint //TODO: Delete this
+	writtenCounter  uint
 }
 
-func (self *CommentDigestor) info() {
-	//TODO: Eliminate this. It's only for debugging purposes
-	log.Infof("Received: %v. Written: %v", self.received_counter, self.written_counter)
-}
+// func (self *CommentDigestor) info() {
+// 	//TODO: Eliminate this. It's only for debugging purposes
+// 	log.Infof("Received: %v. Written: %v", self.received_counter, self.written_counter)
+// }
 
 func NewDigestor() CommentDigestor {
 	self := CommentDigestor{
 		Parser: utils.NewParser(),
 	}
-	self.generate_regex()
+	self.generateRegex()
 
 	return self
 }
 
 func (self *CommentDigestor) filter(input string) (string, error) {
 	log.Debugf("Received: %v", input)
-	self.received_counter += 1
+	self.receivedCounter += 1
 
-	permalink_idx := 6
-	body_idx := 7
-	sentiment_idx := 8
+	permalinkIdx := 6
+	bodyIdx := 7
+	sentimentIdx := 8
 
 	splits := self.Parser.Read(input)
 	if len(splits) != 10 {
 		return "", fmt.Errorf("invalid input")
 	}
 
-	permalink := splits[permalink_idx]
-	body := splits[body_idx]
-	sentiment := splits[sentiment_idx]
+	permalink := splits[permalinkIdx]
+	body := splits[bodyIdx]
+	sentiment := splits[sentimentIdx]
 
 	ok := true
-	ok = ok && self.sentiment_r.MatchString(sentiment)
-	ok = ok && self.body_r.MatchString(body)
+	ok = ok && self.sentimentRegex.MatchString(sentiment)
+	ok = ok && self.bodyRegex.MatchString(body)
 	ok = ok && (body != "[deleted]") && (body != "[removed]")
 	if !ok {
 		return "", fmt.Errorf("invalid input")
 	}
-	post_id, err := self.get_post_id(permalink)
+	postId, err := self.getPostId(permalink)
 
 	if err != nil {
 		return "", fmt.Errorf("invalid input")
 	}
 
-	output := []string{post_id, sentiment, body}
+	output := []string{postId, sentiment, body}
 	result := self.Parser.Write(output)
 
-	self.written_counter += 1
+	self.writtenCounter += 1
 
 	return result, nil
 }
 
-func (self *CommentDigestor) generate_regex() {
-	sentiment_r := `^[+-]?(1(\.0+)?|(0\.[0-9]+))$`
-	body_r := `(.*)?\S+(.*)?` // Allow any space
-	permalink_r := `https://old\.reddit\.com/r/((\bme_irl\b)|(\bmeirl\b))/comments/([^/]+)/.*`
+func (self *CommentDigestor) generateRegex() {
+	sentimentRegex := `^[+-]?(1(\.0+)?|(0\.[0-9]+))$`
+	bodyRegex := `(.*)?\S+(.*)?` // Allow any space
+	permalingRegex := `https://old\.reddit\.com/r/((\bme_irl\b)|(\bmeirl\b))/comments/([^/]+)/.*`
 
 	//Build the regex
-	self.sentiment_r = regexp.MustCompile(sentiment_r)
-	self.body_r = regexp.MustCompile(body_r)
-	self.permalink_r = regexp.MustCompile(permalink_r)
+	self.sentimentRegex = regexp.MustCompile(sentimentRegex)
+	self.bodyRegex = regexp.MustCompile(bodyRegex)
+	self.permalingRegex = regexp.MustCompile(permalingRegex)
 }
 
-func (self *CommentDigestor) get_post_id(input string) (string, error) {
-	split := self.permalink_r.FindStringSubmatch(input)
+func (self *CommentDigestor) getPostId(input string) (string, error) {
+	split := self.permalingRegex.FindStringSubmatch(input)
 	if len(split) < 2 {
 		return "", fmt.Errorf("Could not get id from input")
 	}
@@ -89,7 +89,7 @@ func (self *CommentDigestor) get_post_id(input string) (string, error) {
 	return split[4], nil
 }
 
-func test_function() {
+func testFunction() {
 	lines := []string{
 		//Correct
 		"comment,cag9p9z,2vegg,me_irl,False,1370912170,https://old.reddit.com/r/me_irl/comments/1g2h1a/,According to elsewhere on Reddit: Peggle 2,0.0,2",

@@ -36,22 +36,22 @@ type CommentFinished struct { //Implements Encodable
 }
 
 type Response struct { //Implements Encodable
-	Post_score_average  float64
-	Best_sentiment_meme []byte
-	School_memes        []string
+	PostScoreAvg      float64
+	BestSentimentMeme []byte
+	SchoolMemes       []string
 }
 
 func (self *Post) encode() []byte {
-	message_id := encode8(PostOP)
-	message := encode_string(self.Post)
+	messageId := encode8(PostOP)
+	message := encodeString(self.Post)
 
-	return append(message_id, message...)
+	return append(messageId, message...)
 }
 
 func (self *Post) fromEncoding(code []byte) error {
 	_, start := decode8(code)
 
-	post, _ := decode_string(code[start:])
+	post, _ := decodeString(code[start:])
 
 	self.Post = post
 
@@ -59,16 +59,16 @@ func (self *Post) fromEncoding(code []byte) error {
 }
 
 func (self *Comment) encode() []byte {
-	message_id := encode8(CommentOP)
-	message := encode_string(self.Comment)
+	messageId := encode8(CommentOP)
+	message := encodeString(self.Comment)
 
-	return append(message_id, message...)
+	return append(messageId, message...)
 }
 
 func (self *Comment) fromEncoding(code []byte) error {
 	_, start := decode8(code)
 
-	comment, _ := decode_string(code[start:])
+	comment, _ := decodeString(code[start:])
 
 	self.Comment = comment
 
@@ -76,16 +76,16 @@ func (self *Comment) fromEncoding(code []byte) error {
 }
 
 func (self *Error) encode() []byte {
-	message_id := encode8(ErrorOP)
-	message := encode_string(self.Message)
-	return append(message_id, message...)
+	messageId := encode8(ErrorOP)
+	message := encodeString(self.Message)
+	return append(messageId, message...)
 }
 
 func (self *Error) fromEncoding(code []byte) error {
 
 	_, start := decode8(code)
 
-	message, _ := decode_string(code[start:])
+	message, _ := decodeString(code[start:])
 
 	self.Message = message
 
@@ -110,12 +110,12 @@ func (self *CommentFinished) fromEncoding(code []byte) error {
 
 func (self *Response) encode() []byte {
 
-	message_id := encode8(ResponseOP)
-	score := encodeF64(self.Post_score_average)
-	meme := encode_byte_slice(self.Best_sentiment_meme)
-	school_memes := encode_string_slice(self.School_memes)
+	messageId := encode8(ResponseOP)
+	score := encodeF64(self.PostScoreAvg)
+	meme := encodeByteSlice(self.BestSentimentMeme)
+	schoolMemes := encodeStringSlice(self.SchoolMemes)
 
-	return append_slices([][]byte{message_id, score, meme, school_memes})
+	return appendSlices([][]byte{messageId, score, meme, schoolMemes})
 
 }
 
@@ -123,13 +123,13 @@ func (self *Response) fromEncoding(code []byte) error {
 	_, start := decode8(code)
 	avg, n := decodeF64(code[start:])
 	start += n
-	meme, n := decode_byte_slice(code[start:])
+	meme, n := decodeByteSlice(code[start:])
 	start += n
-	school_memes, _ := decode_string_slice(code[start:])
+	schoolMemes, _ := decodeStringSlice(code[start:])
 
-	self.Post_score_average = avg
-	self.Best_sentiment_meme = meme
-	self.School_memes = school_memes
+	self.PostScoreAvg = avg
+	self.BestSentimentMeme = meme
+	self.SchoolMemes = schoolMemes
 
 	return nil
 }

@@ -14,13 +14,13 @@ type ControlTable struct {
 	table map[string]*TableEntry
 }
 
-func New_control_table() ControlTable {
+func NewControlTable() ControlTable {
 	return ControlTable{
 		table: make(map[string]*TableEntry),
 	}
 }
 
-func (self *ControlTable) Add_new_writer(name string, callback func(uint)) {
+func (self *ControlTable) AddNewWriter(name string, callback func(uint)) {
 	//If it already exists, we overwrite it
 	entry, exists := self.table[name]
 	if exists {
@@ -39,7 +39,7 @@ func (self *ControlTable) Add_new_writer(name string, callback func(uint)) {
 	}
 }
 
-func (self *ControlTable) Add_new_reader(name string) {
+func (self *ControlTable) AddNewReader(name string) {
 	//If it already exists, we overwrite it
 	_, exists := self.table[name]
 	if exists {
@@ -54,7 +54,7 @@ func (self *ControlTable) Add_new_reader(name string) {
 	}
 }
 
-func (self *ControlTable) Decrease_writer(name string) error {
+func (self *ControlTable) DecreaseWriter(name string) error {
 	entry, exists := self.table[name]
 	if !exists {
 		return fmt.Errorf("%v does not exist in control table", name)

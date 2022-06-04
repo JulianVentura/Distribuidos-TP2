@@ -21,7 +21,7 @@ import (
 // an error is returned
 func InitConfig() (client.ClientConfig, error) {
 	v := viper.New()
-	err_result := client.ClientConfig{}
+	errResult := client.ClientConfig{}
 	// Configure viper to read env variables with the CLI_ prefix
 	v.AutomaticEnv()
 	// Use a replacer to replace env variables underscores with points. This let us
@@ -48,38 +48,38 @@ func InitConfig() (client.ClientConfig, error) {
 	}
 
 	if _, err := time.ParseDuration(v.GetString("loop-period.comment")); err != nil {
-		return err_result, Err.Ctx("Could not parse CLI_LOOP-PERIOD_COMMENT env var as time.Duration.", err)
+		return errResult, Err.Ctx("Could not parse CLI_LOOP-PERIOD_COMMENT env var as time.Duration.", err)
 	}
 
 	if _, err := time.ParseDuration(v.GetString("loop-period.post")); err != nil {
-		return err_result, Err.Ctx("Could not parse CLI_LOOP-PERIOD_POST env var as time.Duration.", err)
+		return errResult, Err.Ctx("Could not parse CLI_LOOP-PERIOD_POST env var as time.Duration.", err)
 	}
 
 	c_config := client.ClientConfig{
-		Id:                       v.GetUint("id"),
-		Log_level:                v.GetString("log.level"),
-		Server_address:           v.GetString("server.address"),
-		Loop_period_post:         v.GetDuration("loop-period.post"),
-		Loop_period_comment:      v.GetDuration("loop-period.comment"),
-		File_path_post:           v.GetString("files-path.post"),
-		File_path_comment:        v.GetString("files-path.comment"),
-		File_path_sentiment_meme: v.GetString("files-path.sentiment-meme"),
-		File_path_school_memes:   v.GetString("files-path.school-memes"),
+		Id:                    v.GetUint("id"),
+		LogLevel:              v.GetString("log.level"),
+		ServerAddress:         v.GetString("server.address"),
+		LoopPeriodPost:        v.GetDuration("loop-period.post"),
+		LoopPeriodComment:     v.GetDuration("loop-period.comment"),
+		FilePathPost:          v.GetString("files-path.post"),
+		FilePathComment:       v.GetString("files-path.comment"),
+		FilePathSentimentMeme: v.GetString("files-path.sentiment-meme"),
+		FilePathSchoolMemes:   v.GetString("files-path.school-memes"),
 	}
 
 	return c_config, nil
 }
 
-func PrintConfig(c_config *client.ClientConfig) {
-	log.Printf("Client %v configuration: \n", c_config.Id)
-	log.Printf(" - ID: %v\n", c_config.Id)
-	log.Printf(" - Server Address: %v\n", c_config.Server_address)
-	log.Printf(" - Loop Period Post: %v\n", c_config.Loop_period_post)
-	log.Printf(" - Loop Period Comment: %v\n", c_config.Loop_period_comment)
-	log.Printf(" - File Path Post: %v\n", c_config.File_path_post)
-	log.Printf(" - File Path Comment: %v\n", c_config.File_path_comment)
-	log.Printf(" - File Path Sentiment Meme: %v\n", c_config.File_path_sentiment_meme)
-	log.Printf(" - File Path School Memes: %v\n", c_config.File_path_school_memes)
+func PrintConfig(config *client.ClientConfig) {
+	log.Printf("Client %v configuration: \n", config.Id)
+	log.Printf(" - ID: %v\n", config.Id)
+	log.Printf(" - Server Address: %v\n", config.ServerAddress)
+	log.Printf(" - Loop Period Post: %v\n", config.LoopPeriodPost)
+	log.Printf(" - Loop Period Comment: %v\n", config.LoopPeriodComment)
+	log.Printf(" - File Path Post: %v\n", config.FilePathPost)
+	log.Printf(" - File Path Comment: %v\n", config.FilePathComment)
+	log.Printf(" - File Path Sentiment Meme: %v\n", config.FilePathSentimentMeme)
+	log.Printf(" - File Path School Memes: %v\n", config.FilePathSchoolMemes)
 	log.Print("----\n\n")
 }
 
@@ -105,7 +105,7 @@ func main() {
 		return
 	}
 
-	if err := InitLogger(config.Log_level); err != nil {
+	if err := InitLogger(config.LogLevel); err != nil {
 		log.Fatalf("%s", err)
 	}
 	PrintConfig(&config)

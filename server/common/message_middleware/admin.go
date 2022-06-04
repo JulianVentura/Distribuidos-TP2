@@ -16,35 +16,35 @@ type MiddlewareAdmin struct {
 }
 
 func StartAdmin(
-	mom_address string,
+	momAddress string,
 	quit chan bool,
 ) (*MiddlewareAdmin, error) {
 
-	m_config := mom.MessageMiddlewareConfig{
-		Address:          mom_address,
-		Notify_on_finish: false,
+	momConfig := mom.MessageMiddlewareConfig{
+		Address:        momAddress,
+		NotifyOnFinish: false,
 	}
 
-	msg_middleware, err := mom.Start(m_config)
+	msgMiddleware, err := mom.Start(momConfig)
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't connect to mom: %v", err)
 	}
 
-	control, err := msg_middleware.Read_queue(mom.QueueConfig{
+	control, err := msgMiddleware.ReadQueue(mom.QueueConfig{
 		Name:  "admin_control",
 		Class: "worker",
 	})
 	if err != nil {
-		msg_middleware.Finish()
+		msgMiddleware.Finish()
 		return nil, fmt.Errorf("Couldn't declare control queue: %v", err)
 	}
 
 	log.Infof("Message Middleware Admin started")
 
 	return &MiddlewareAdmin{
-		mom:     msg_middleware,
+		mom:     msgMiddleware,
 		control: control,
-		table:   New_control_table(),
+		table:   NewControlTable(),
 		quit:    quit,
 	}, nil
 }
@@ -60,11 +60,11 @@ Loop:
 			params := strings.SplitN(m.Body, ",", 2)
 			switch params[0] {
 			case "new_write":
-				self.handle_new_write_queue(params[1])
+				self.handleNewWriteQueue(params[1])
 			case "new_read":
-				self.handle_new_read_queue(params[1])
+				self.handleNewReadQueue(params[1])
 			case "finish":
-				self.handle_queue_finish(params[1])
+				self.handleNewQueueFinish(params[1])
 			default:
 				log.Errorf("Received invalid message. Topic: %v, Body: %v", m.Topic, m.Body)
 			}
@@ -75,15 +75,15 @@ Loop:
 	log.Infof("Middleware Admin has finished")
 }
 
-func (self *MiddlewareAdmin) handle_new_write_queue(queue_config string) {
-	log.Debugf("New Queue Writer: %v", queue_config)
+func (self *MiddlewareAdmin) handleNewWriteQueue(config string) {
+	log.Debugf("New Queue Writer: %v", config)
 	//Parsear
-	params := strings.Split(queue_config, ",")
+	params := strings.Split(config, ",")
 	if len(params) != 5 {
-		log.Errorf("Received new queue with invalid params: %v", queue_config)
+		log.Errorf("Received new queue with invalid params: %v", config)
 		return
 	}
-	q_config := mom.QueueConfig{
+	qConfig := mom.QueueConfig{
 		Name:      params[0],
 		Class:     params[1],
 		Topic:     params[2],
@@ -91,14 +91,14 @@ func (self *MiddlewareAdmin) handle_new_write_queue(queue_config string) {
 		Direction: params[4],
 	}
 	//Declarar la cola con el middleware
-	queue, err := self.mom.Write_queue(q_config)
+	queue, err := self.mom.WriteQueue(qConfig)
 	if err != nil {
-		log.Errorf("Couldn't initialize queue with config %v: %v", queue_config, err)
+		log.Errorf("Couldn't initialize queue with config %v: %v", config, err)
 		return
 	}
 	//Introducir en table, con el callback
-	self.table.Add_new_writer(q_config.Name, func(reader_count uint) {
-		log.Debugf("Callback of %v has been called for %v readers", q_config.Name, reader_count)
+	self.table.AddNewWriter(qConfig.Name, func(readerCount uint) {
+		log.Debugf("Callback of %v has been called for %v readers", qConfig.Name, readerCount)
 		queue <- mom.Message{
 			Topic: "finish",
 			Body:  "finish",
@@ -112,12 +112,12 @@ func (self *MiddlewareAdmin) handle_new_write_queue(queue_config string) {
 	})
 }
 
-func (self *MiddlewareAdmin) handle_new_read_queue(queue_name string) {
-	log.Debugf("New Queue Reader: %v", queue_name)
-	self.table.Add_new_reader(queue_name)
+func (self *MiddlewareAdmin) handleNewReadQueue(queueName string) {
+	log.Debugf("New Queue Reader: %v", queueName)
+	self.table.AddNewReader(queueName)
 }
 
-func (self *MiddlewareAdmin) handle_queue_finish(queue_name string) {
-	log.Debugf("Queue finish: %v", queue_name)
-	self.table.Decrease_writer(queue_name)
+func (self *MiddlewareAdmin) handleNewQueueFinish(queueName string) {
+	log.Debugf("Queue finish: %v", queueName)
+	self.table.DecreaseWriter(queueName)
 }

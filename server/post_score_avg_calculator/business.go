@@ -45,12 +45,12 @@ func (self *PostScoreAvgCalculator) add(input string) {
 	self.Counter += count
 }
 
-func (self *PostScoreAvgCalculator) get_result() string {
+func (self *PostScoreAvgCalculator) getResult() string {
 	result := fmt.Sprintf("%.4f", float64(self.Sum)/float64(self.Counter))
 	return self.Parser.Write([]string{result})
 }
 
-func test_function() {
+func testFunction() {
 	lines := []string{
 		"123,3",
 		"215,5",
@@ -68,9 +68,9 @@ func test_function() {
 		work(line)
 	}
 
-	if adder.get_result() == "65.4269" {
+	if adder.getResult() == "65.4269" {
 		fmt.Println("OK")
 	} else {
-		fmt.Printf("ERROR: %v", adder.get_result())
+		fmt.Printf("ERROR: %v", adder.getResult())
 	}
 }

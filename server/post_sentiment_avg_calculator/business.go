@@ -35,33 +35,33 @@ func (self *SentimentAvgCalculator) add(input string) {
 		log.Errorf("Received bad formated input on SentimentAvgCalculator")
 		return
 	}
-	p_id := split[0]
+	postId := split[0]
 	sentiment, err := strconv.ParseFloat(split[1], 64)
 	if err != nil {
 		log.Errorf("Sentiment bad formated: %v", err)
 		return
 	}
 
-	_, exists := self.posts[p_id]
+	_, exists := self.posts[postId]
 	if !exists {
-		self.posts[p_id] = []float64{sentiment, 1.0}
+		self.posts[postId] = []float64{sentiment, 1.0}
 		return
 	}
-	self.posts[p_id][0] += sentiment
-	self.posts[p_id][1] += 1.0
+	self.posts[postId][0] += sentiment
+	self.posts[postId][1] += 1.0
 }
 
-func (self *SentimentAvgCalculator) get_result() []string {
+func (self *SentimentAvgCalculator) getResult() []string {
 	result := make([]string, 0, len(self.posts))
 	for post, values := range self.posts {
-		to_write := []string{fmt.Sprint(post), fmt.Sprintf("%.4f", values[0]/values[1])}
-		result = append(result, self.Parser.Write(to_write))
+		toWrite := []string{fmt.Sprint(post), fmt.Sprintf("%.4f", values[0]/values[1])}
+		result = append(result, self.Parser.Write(toWrite))
 	}
 
 	return result
 }
 
-func test_function() {
+func testFunction() {
 	lines := []string{
 		"id1,0.23,a",
 		"id1,0.46,a",
@@ -79,7 +79,7 @@ func test_function() {
 		work(line)
 	}
 
-	result := adder.get_result()
+	result := adder.getResult()
 
 	for _, r := range result {
 		fmt.Printf("%v\n", r)

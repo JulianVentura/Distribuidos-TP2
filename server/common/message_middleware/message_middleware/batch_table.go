@@ -3,22 +3,22 @@ package message_middleware
 const INITIAL_SIZE = 1000
 
 type BatchTable struct {
-	table          map[string][]string
-	size           uint
-	size_limit     uint
-	flush_callback func(string, []string)
+	table         map[string][]string
+	size          uint
+	sizeLimit     uint
+	flushCallback func(string, []string)
 }
 
-func CreateBatchTable(callback func(string, []string), size_limit uint) BatchTable {
+func createBatchTable(callback func(string, []string), sizeLimit uint) BatchTable {
 	return BatchTable{
-		table:          make(map[string][]string, INITIAL_SIZE),
-		size:           0,
-		size_limit:     size_limit,
-		flush_callback: callback,
+		table:         make(map[string][]string, INITIAL_SIZE),
+		size:          0,
+		sizeLimit:     sizeLimit,
+		flushCallback: callback,
 	}
 }
 
-func (self *BatchTable) Add_entry(key string, value string) {
+func (self *BatchTable) addEntry(key string, value string) {
 	_, exists := self.table[key]
 	if exists {
 		self.table[key] = append(self.table[key], value)
@@ -28,22 +28,22 @@ func (self *BatchTable) Add_entry(key string, value string) {
 
 	self.size += uint(len(value))
 
-	if self.size >= self.size_limit {
-		self.Flush()
+	if self.size >= self.sizeLimit {
+		self.flush()
 	}
 }
 
-func (self *BatchTable) Is_empty() bool {
+func (self *BatchTable) isEmpty() bool {
 	return self.size == 0
 }
 
-func (self *BatchTable) Flush() {
-	if self.Is_empty() {
+func (self *BatchTable) flush() {
+	if self.isEmpty() {
 		return
 	}
 
 	for k, v := range self.table {
-		self.flush_callback(k, v)
+		self.flushCallback(k, v)
 	}
 
 	self.table = make(map[string][]string, INITIAL_SIZE)

@@ -11,34 +11,34 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func parse_configs(envs map[string]string) (JoinerConfig, error) {
+func parseConfigs(envs map[string]string) (JoinerConfig, error) {
 	config := JoinerConfig{}
-	keep_id, err := strconv.ParseBool(envs["keep_id"])
+	keepId, err := strconv.ParseBool(envs["keep_id"])
 	if err != nil {
 		return config, fmt.Errorf("Couldn't parse keep_id: %v", err)
 	}
-	base_body_size, err := strconv.ParseUint(envs["base_body_size"], 10, 64)
+	baseBodySize, err := strconv.ParseUint(envs["base_body_size"], 10, 64)
 	if err != nil {
 		return config, fmt.Errorf("Couldn't parse base_body_size: %v", err)
 	}
-	to_join_body_size, err := strconv.ParseUint(envs["to_join_body_size"], 10, 64)
+	toJoinBodySize, err := strconv.ParseUint(envs["to_join_body_size"], 10, 64)
 	if err != nil {
 		return config, fmt.Errorf("Couldn't parse to_join_body_size: %v", err)
 	}
-	filter_duplicates, err := strconv.ParseBool(envs["filter_duplicates"])
+	filterDuplicates, err := strconv.ParseBool(envs["filter_duplicates"])
 	if err != nil {
 		return config, fmt.Errorf("Couldn't parse filter_duplicates: %v", err)
 	}
-	config.keep_id = keep_id
-	config.base_body_size = uint(base_body_size)
-	config.to_join_body_size = uint(to_join_body_size)
-	config.filter_duplicates = filter_duplicates
+	config.keepId = keepId
+	config.baseBodySize = uint(baseBodySize)
+	config.toJoinBodySize = uint(toJoinBodySize)
+	config.filterDuplicates = filterDuplicates
 	return config, nil
 }
 
-func worker_callback(envs map[string]string, queues map[string]chan mom.Message, quit chan bool) {
+func workerCallback(envs map[string]string, queues map[string]chan mom.Message, quit chan bool) {
 	// - Parse the env configs
-	config, err := parse_configs(envs)
+	config, err := parseConfigs(envs)
 	if err != nil {
 		log.Errorf("%v", err)
 		return
@@ -48,24 +48,24 @@ func worker_callback(envs map[string]string, queues map[string]chan mom.Message,
 	joiner := NewJoiner(config)
 
 	// - Create and run the consumer for the post input
-	q_p := consumer.ConsumerQueues{Input: queues["base_input"]}
-	post_consumer, err := consumer.New(joiner.Add, q_p, quit)
+	baseConsumerQueues := consumer.ConsumerQueues{Input: queues["base_input"]}
+	baseConsumer, err := consumer.New(joiner.Add, baseConsumerQueues, quit)
 	if err != nil {
 		log.Errorf("%v", err)
 		return
 	}
-	post_consumer.Run()
+	baseConsumer.Run()
 
 	// - Create and run the consumer for the join input
-	callback := worker.Create_callback(joiner.Join, queues["result"])
-	q_s := consumer.ConsumerQueues{Input: queues["join_input"]}
-	sentiment_consumer, err := consumer.New(callback, q_s, quit)
+	callback := worker.CreateCallback(joiner.Join, queues["result"])
+	joinConsumerQueues := consumer.ConsumerQueues{Input: queues["join_input"]}
+	joinConsumer, err := consumer.New(callback, joinConsumerQueues, quit)
 	if err != nil {
 		log.Errorf("%v", err)
 		return
 	}
 
-	sentiment_consumer.Run()
+	joinConsumer.Run()
 }
 
 func main() {
@@ -84,13 +84,13 @@ func main() {
 		},
 	}
 
-	process_worker, err := worker.StartWorker(cfg)
+	processWorker, err := worker.StartWorker(cfg)
 	if err != nil {
 		fmt.Printf("Error starting new process worker: %v\n", err)
 		return
 	}
-	defer process_worker.Finish()
+	defer processWorker.Finish()
 
 	// - Run the process worker
-	process_worker.Run(worker_callback)
+	processWorker.Run(workerCallback)
 }

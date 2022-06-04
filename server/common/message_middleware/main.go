@@ -24,7 +24,7 @@ func InitLogger(logLevel string) error {
 func main() {
 
 	//TODO: Levantar todo de config
-	quit := worker.Start_quit_signal()
+	quit := worker.StartQuitSignal()
 	if err := InitLogger("info"); err != nil {
 		fmt.Println("Couldn't initialize logger")
 		return

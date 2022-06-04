@@ -9,15 +9,15 @@ import (
 )
 
 type StudentCommentFilter struct {
-	Parser        utils.MessageParser
-	special_words []string
+	Parser       utils.MessageParser
+	specialWords []string
 }
 
 func NewFilter() StudentCommentFilter {
 
 	return StudentCommentFilter{
 		Parser: utils.NewParser(),
-		special_words: []string{
+		specialWords: []string{
 			"university",
 			"college",
 			"student",
@@ -33,26 +33,26 @@ func (self *StudentCommentFilter) filter(input string) (string, error) {
 	if len(split) != 3 {
 		return "", fmt.Errorf("Received bad formated input on SentimentAvgCalculator")
 	}
-	p_id := split[0]
+	postId := split[0]
 	body := split[2]
 
-	word_found := false
-	for _, word := range self.special_words {
+	wordFound := false
+	for _, word := range self.specialWords {
 		if strings.Contains(body, word) {
-			word_found = true
+			wordFound = true
 			break
 		}
 	}
 
-	if !word_found {
+	if !wordFound {
 		return "", fmt.Errorf("Body does not have a special word")
 	}
 
-	log.Debugf("Written: %v", p_id)
-	return p_id, nil
+	log.Debugf("Written: %v", postId)
+	return postId, nil
 }
 
-func test_function() {
+func testFunction() {
 	lines := []string{
 		"id1,0.23,i went to that college and i learned a lot",
 		"id1,0.46",

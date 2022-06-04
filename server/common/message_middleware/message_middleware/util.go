@@ -5,12 +5,12 @@ import (
 	amqp "github.com/streadway/amqp"
 )
 
-func publish(messages []string, exchange string, routing_key string, output *amqp.Channel) error {
-	encoded := encode_string_slice(messages)
+func publish(messages []string, exchange string, routingKey string, output *amqp.Channel) error {
+	encoded := encodeStringSlice(messages)
 	err := output.Publish(
-		exchange,    // exchange
-		routing_key, // routing key
-		false,       // mandatory
+		exchange,   // exchange
+		routingKey, // routing key
+		false,      // mandatory
 		false,
 		amqp.Publishing{
 			Body: encoded,

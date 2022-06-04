@@ -20,7 +20,7 @@ import (
 // InitLogger Receives the log level to be set in logrus as a string. This method
 // parses the string and set the level to the logger. If the level string is not
 // valid an error is returned
-func init_logger(logLevel string) error {
+func initLogger(logLevel string) error {
 	level, err := log.ParseLevel(logLevel)
 	if err != nil {
 		return err
@@ -34,7 +34,7 @@ func init_logger(logLevel string) error {
 	return nil
 }
 
-func print_config(config *InitConfig) {
+func printConfig(config *InitConfig) {
 	log.Infof("Configuration %v %v", config.Envs["process_name"], config.Envs["id"])
 	for k, v := range config.Envs {
 		log.Infof("* %s: %s", k, v)
@@ -42,58 +42,58 @@ func print_config(config *InitConfig) {
 
 	log.Infof("* Queues:")
 
-	for q_name, q_config := range config.Queues {
-		log.Infof(" # %v:", q_name)
-		log.Infof("  - Name: %v", q_config.Name)
-		log.Infof("  - Class: %v", q_config.Class)
-		log.Infof("  - Topic: %v", q_config.Topic)
-		log.Infof("  - Source: %v", q_config.Source)
-		log.Infof("  - Direction: %v", q_config.Direction)
+	for qName, qConf := range config.Queues {
+		log.Infof(" # %v:", qName)
+		log.Infof("  - Name: %v", qConf.Name)
+		log.Infof("  - Class: %v", qConf.Class)
+		log.Infof("  - Topic: %v", qConf.Topic)
+		log.Infof("  - Source: %v", qConf.Source)
+		log.Infof("  - Direction: %v", qConf.Direction)
 	}
 }
 
-func Create_load_balance_callback(
+func CreateLoadBalanceCallback(
 	callback func(string) (string, error),
-	load_balance uint,
-	process_group string,
-	result_q chan mom.Message) func(string) {
+	loadBalance uint,
+	processGroup string,
+	resultQueue chan mom.Message) func(string) {
 
-	result_topic := fmt.Sprintf("%v_result", process_group)
+	resultTopic := fmt.Sprintf("%v_result", processGroup)
 	return func(msg string) {
 		result, err := callback(msg)
 		if err == nil {
-			Balance_load_send(result_q, result_topic, load_balance, result)
+			BalanceLoadSend(resultQueue, resultTopic, loadBalance, result)
 		}
 	}
 }
 
-func Create_callback(
+func CreateCallback(
 	callback func(string) (string, error),
-	result_q chan mom.Message) func(string) {
+	resultQueue chan mom.Message) func(string) {
 
 	return func(msg string) {
 		result, err := callback(msg)
 		if err == nil {
-			result_q <- mom.Message{
+			resultQueue <- mom.Message{
 				Body: result,
 			}
 		}
 	}
 }
 
-func Balance_load_send(
+func BalanceLoadSend(
 	output chan mom.Message,
-	topic_header string,
-	process_number uint,
+	topicHeader string,
+	processNumber uint,
 	message string) {
 
 	parser := utils.NewParser()
 	id := parser.ReadN(message, 2)[0]
-	target := hash(id) % uint32(process_number)
+	target := hash(id) % uint32(processNumber)
 
 	output <- mom.Message{
 		Body:  message,
-		Topic: fmt.Sprintf("%s.%v", topic_header, target),
+		Topic: fmt.Sprintf("%s.%v", topicHeader, target),
 	}
 }
 
@@ -103,7 +103,7 @@ func hash(s string) uint32 {
 	return h.Sum32()
 }
 
-func Start_quit_signal() chan bool {
+func StartQuitSignal() chan bool {
 
 	exit := make(chan os.Signal, 1)
 	quit := make(chan bool, 1)
@@ -116,7 +116,7 @@ func Start_quit_signal() chan bool {
 	return quit
 }
 
-func parse_queue_config(data []byte) (mom.QueueConfig, error) {
+func parseQueueConfig(data []byte) (mom.QueueConfig, error) {
 	config := mom.QueueConfig{}
 	name, err := json.GetString(data, "name")
 	if err != nil {
@@ -148,9 +148,9 @@ func parse_queue_config(data []byte) (mom.QueueConfig, error) {
 	return config, nil
 }
 
-func parse_queues_config(data []byte, queues []string) (map[string]mom.QueueConfig, error) {
+func parseQueuesConfig(data []byte, queues []string) (map[string]mom.QueueConfig, error) {
 
-	queues_config, _, _, err := json.Get(data, "queues")
+	queuesConfig, _, _, err := json.Get(data, "queues")
 	if err != nil {
 		return nil, fmt.Errorf("Config file is bad formatted: %v", err)
 	}
@@ -158,11 +158,11 @@ func parse_queues_config(data []byte, queues []string) (map[string]mom.QueueConf
 	result := make(map[string]mom.QueueConfig)
 
 	for _, q := range queues {
-		input_data, _, _, err := json.Get(queues_config, q)
+		input_data, _, _, err := json.Get(queuesConfig, q)
 		if err != nil {
 			return nil, fmt.Errorf("Could not find %v queue in config: %v", q, err)
 		}
-		queue, err := parse_queue_config(input_data)
+		queue, err := parseQueueConfig(input_data)
 		if err != nil {
 			return nil, fmt.Errorf("Queue %v is bad formated: %v", q, err)
 		}
@@ -173,22 +173,22 @@ func parse_queues_config(data []byte, queues []string) (map[string]mom.QueueConf
 	return result, nil
 }
 
-func init_queues(msg_middleware *mom.MessageMiddleware, config map[string]mom.QueueConfig) (map[string]chan mom.Message, error) {
+func initQueues(msgMiddleware *mom.MessageMiddleware, config map[string]mom.QueueConfig) (map[string]chan mom.Message, error) {
 
 	queues := make(map[string](chan mom.Message))
 
-	for q_name, q_config := range config {
-		q, err := msg_middleware.New_queue(q_config)
+	for qName, qConfig := range config {
+		q, err := msgMiddleware.NewQueue(qConfig)
 		if err != nil {
 			return nil, err
 		}
-		queues[q_name] = q
+		queues[qName] = q
 	}
 
 	return queues, nil
 }
 
-func expand_queues_topic(queues map[string]mom.QueueConfig, id string) {
+func expadnQueuesTopic(queues map[string]mom.QueueConfig, id string) {
 	for name, queue := range queues {
 		queue.Topic = strings.Replace(queue.Topic, "{id}", id, 1)
 		queues[name] = queue
@@ -212,7 +212,7 @@ type InitConfig struct {
 	Queues map[string]mom.QueueConfig
 }
 
-func add_if_not_exists(list *[]string, val string) {
+func addIfNotExists(list *[]string, val string) {
 	exists := false
 	for _, v := range *list {
 		if v == val {
@@ -228,43 +228,43 @@ func add_if_not_exists(list *[]string, val string) {
 
 func StartWorker(config WorkerConfig) (Worker, error) {
 	// - Adding must have configs
-	add_if_not_exists(&config.Envs, "id")
-	add_if_not_exists(&config.Envs, "mom_address")
-	add_if_not_exists(&config.Envs, "log_level")
-	add_if_not_exists(&config.Envs, "process_name")
-	add_if_not_exists(&config.Envs, "process_group")
+	addIfNotExists(&config.Envs, "id")
+	addIfNotExists(&config.Envs, "mom_address")
+	addIfNotExists(&config.Envs, "log_level")
+	addIfNotExists(&config.Envs, "process_name")
+	addIfNotExists(&config.Envs, "process_group")
 	// - Definir señal de quit
-	quit := Start_quit_signal()
+	quit := StartQuitSignal()
 	// - Config parse
-	cfg, err := init_config(&config)
+	cfg, err := initConfig(&config)
 	if err != nil {
 		return Worker{}, fmt.Errorf("Error on config: %v\n", err)
 	}
 	//- Logger init
-	if err := init_logger(cfg.Envs["log_level"]); err != nil {
+	if err := initLogger(cfg.Envs["log_level"]); err != nil {
 		return Worker{}, fmt.Errorf("Couldn't start logger: %v", err)
 	}
 	log.Infof("Starting %v...", cfg.Envs["process_name"])
 
 	//Expand the queues topic with process id
-	expand_queues_topic(cfg.Queues, cfg.Envs["id"])
+	expadnQueuesTopic(cfg.Queues, cfg.Envs["id"])
 
 	//- Print config
-	print_config(&cfg)
+	printConfig(&cfg)
 
 	// - Mom initialization
-	m_config := mom.MessageMiddlewareConfig{
-		Address:          cfg.Envs["mom_address"],
-		Notify_on_finish: true,
+	mConfig := mom.MessageMiddlewareConfig{
+		Address:        cfg.Envs["mom_address"],
+		NotifyOnFinish: true,
 	}
 
-	msg_middleware, err := mom.Start(m_config)
+	messageMiddleware, err := mom.Start(mConfig)
 	if err != nil {
 		return Worker{}, fmt.Errorf("Couldn't start mom: %v", err)
 	}
 
 	// - Queues initialization
-	queues, err := init_queues(msg_middleware, cfg.Queues)
+	queues, err := initQueues(messageMiddleware, cfg.Queues)
 	if err != nil {
 		return Worker{}, fmt.Errorf("Couldn't connect to mom: %v", err)
 	}
@@ -273,7 +273,7 @@ func StartWorker(config WorkerConfig) (Worker, error) {
 		Config: cfg.Envs,
 		Queues: queues,
 		Quit:   quit,
-		Mom:    msg_middleware,
+		Mom:    messageMiddleware,
 	}, nil
 }
 
@@ -285,7 +285,7 @@ func (self *Worker) Run(callback func(map[string]string, map[string]chan mom.Mes
 	callback(self.Config, self.Queues, self.Quit)
 }
 
-func init_config(config *WorkerConfig) (InitConfig, error) {
+func initConfig(config *WorkerConfig) (InitConfig, error) {
 
 	cfg := InitConfig{
 		Envs: make(map[string]string),
@@ -302,38 +302,38 @@ func init_config(config *WorkerConfig) (InitConfig, error) {
 	}
 
 	id := cfg.Envs["id"]
-	process_group := cfg.Envs["process_group"]
+	processGroup := cfg.Envs["process_group"]
 
-	if len(id) < 1 || len(process_group) < 1 {
+	if len(id) < 1 || len(processGroup) < 1 {
 		return cfg, fmt.Errorf("Couldn't parse id or process_group")
 	}
 
 	//Parse json config
 	path := "./config.json"
 
-	json_data, err := ioutil.ReadFile(path)
+	jsonData, err := ioutil.ReadFile(path)
 	if err != nil {
 		return cfg, fmt.Errorf("Couldn't open file %v. %v\n", path, err)
 	}
 
 	//General config
-	mom_address, err := json.GetString(json_data, "general", "mom_address")
+	momAddress, err := json.GetString(jsonData, "general", "mom_address")
 	if err != nil {
 		return cfg, fmt.Errorf("Couldn't parse mom address from config file")
 	}
 
 	cfg.Envs["id"] = id
-	cfg.Envs["process_group"] = process_group
+	cfg.Envs["process_group"] = processGroup
 	cfg.Envs["log_level"] = "debug" //Default value
-	cfg.Envs["mom_address"] = mom_address
+	cfg.Envs["mom_address"] = momAddress
 
-	process_data, _, _, err := json.Get(json_data, process_group)
+	processData, _, _, err := json.Get(jsonData, processGroup)
 	if err != nil {
 		return cfg, fmt.Errorf("Config file is bad formatted")
 	}
 
 	//Parse process config from json
-	err = json.ObjectEach(process_data, func(key []byte, value []byte, dataType json.ValueType, offset int) error {
+	err = json.ObjectEach(processData, func(key []byte, value []byte, dataType json.ValueType, offset int) error {
 		if string(key) == "queues" {
 			return nil
 		}
@@ -346,12 +346,12 @@ func init_config(config *WorkerConfig) (InitConfig, error) {
 	}
 
 	//Parse queues config from json
-	queues_config, err := parse_queues_config(process_data, config.Queues)
+	queuesConfig, err := parseQueuesConfig(processData, config.Queues)
 	if err != nil {
 		return cfg, err
 	}
 
-	cfg.Queues = queues_config
+	cfg.Queues = queuesConfig
 
 	//Check if all wanted config keys were found
 	for _, k := range config.Envs {

@@ -10,12 +10,12 @@ import (
 )
 
 type PostDigestor struct {
-	post_id_r        *regexp.Regexp
-	meme_url_r       *regexp.Regexp
-	post_score_r     *regexp.Regexp
-	Parser           utils.MessageParser
-	received_counter uint
-	written_counter  uint
+	postIdRegex     *regexp.Regexp
+	memeUrlRegex    *regexp.Regexp
+	postScoreRegex  *regexp.Regexp
+	Parser          utils.MessageParser
+	receivedCounter uint
+	writtenCounter  uint
 }
 
 func NewDigestor() PostDigestor {
@@ -23,79 +23,78 @@ func NewDigestor() PostDigestor {
 	self := PostDigestor{
 		Parser: utils.NewParser(),
 	}
-	self.generate_regex()
+	self.generateRegex()
 
 	return self
 }
 
-func (self *PostDigestor) info() {
-	//TODO: Eliminate this. It's only for debugging purposes
-	log.Infof("Received: %v. Written: %v", self.received_counter, self.written_counter)
-}
+// func (self *PostDigestor) info() {
+// 	//TODO: Eliminate this. It's only for debugging purposes
+// 	log.Infof("Received: %v. Written: %v", self.received_counter, self.written_counter)
+// }
 
 func (self *PostDigestor) filter(input string) (string, error) {
 
 	log.Debugf("Received: %v", input)
 
-	self.received_counter += 1
-	post_id_idx := 1
-	post_meme_idx := 8
-	post_score_idx := 11
+	self.receivedCounter += 1
+	postIdIdx := 1
+	postMemeIdx := 8
+	postScoreIdx := 11
 
 	splits := self.Parser.Read(input)
 	if len(splits) != 12 {
 		return "", fmt.Errorf("Received bad formated input")
 	}
 
-	post_id := splits[post_id_idx]
-	post_meme := splits[post_meme_idx]
-	post_score := splits[post_score_idx]
+	postId := splits[postIdIdx]
+	postMeme := splits[postMemeIdx]
+	postScore := splits[postScoreIdx]
 
 	ok := true
-	ok = ok && self.post_id_r.MatchString(post_id)
-	ok = ok && self.meme_url_r.MatchString(strings.ToLower(post_meme))
+	ok = ok && self.postIdRegex.MatchString(postId)
+	ok = ok && self.memeUrlRegex.MatchString(strings.ToLower(postMeme))
+	ok = ok && self.postScoreRegex.MatchString(postScore)
 	if !ok {
 		return "", fmt.Errorf("invalid input")
 	}
-	ok = ok && self.post_score_r.MatchString(post_score)
-
-	output := []string{post_id, post_meme, post_score}
+	output := []string{postId, postMeme, postScore}
 
 	result := self.Parser.Write(output)
 
 	return result, nil
 }
 
-func (self *PostDigestor) generate_regex() {
+func (self *PostDigestor) generateRegex() {
 	//Post id
-	post_id_reg := `^[aA-zZ0-9]+$`
+	postIdRegex := `^[aA-zZ0-9]+$`
 	//Meme url
-	valid_formats := []string{
+	validFormats := []string{
 		"jpg",
 		"png",
 		"gifv",
 		"gif",
 		"jpeg",
 	}
-	for i, format := range valid_formats {
-		valid_formats[i] = fmt.Sprintf("(%v)", format)
+	for i, format := range validFormats {
+		validFormats[i] = fmt.Sprintf("(%v)", format)
 	}
 	// meme_url_reg := `((https)|(http))?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)`
 	// meme_url_reg := `^((https)|(http))?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)\.` + `({valid_formats})` + `(\?.*)?$`
-	base_url := `^((https)|(http))?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)\.`
+	baseUrl := `^((https)|(http))?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)\.`
 	final := `(\?.*)?$`
-	meme_url_reg := fmt.Sprintf("%v(%v)%v", base_url, strings.Join(valid_formats, "|"), final)
+	memeUrlRegex := fmt.Sprintf("%v(%v)%v", baseUrl, strings.Join(validFormats, "|"), final)
 
 	//Score
-	post_score_reg := `^-?[0-9]+$` //Support negative
+	postScoreRegex := `^-?[0-9]+$` //Support negative
 
 	//Build the regex
-	self.post_id_r = regexp.MustCompile(post_id_reg)
-	self.meme_url_r = regexp.MustCompile(meme_url_reg)
-	self.post_score_r = regexp.MustCompile(post_score_reg)
+	self.postIdRegex = regexp.MustCompile(postIdRegex)
+	self.memeUrlRegex = regexp.MustCompile(memeUrlRegex)
+	self.postScoreRegex = regexp.MustCompile(postScoreRegex)
 }
 
-func test_function() {
+func testFunction() {
 	lines := []string{
 		//Correct
 		"post,1258am,2vegg,me_irl,False,1351287079,https://old.reddit.com/r/me_irl/comments/1258am/me_irl/,i.imgur.com,http://i.imgur.com/Df6K0.gif,,me irl,10",

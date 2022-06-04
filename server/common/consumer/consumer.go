@@ -9,23 +9,23 @@ type ConsumerQueues struct {
 }
 
 type Consumer struct {
-	queues          ConsumerQueues
-	on_msg_callback func(string)
-	quit            chan bool
-	has_finished    chan bool
+	queues        ConsumerQueues
+	onMsgCallback func(string)
+	quit          chan bool
+	hasFinished   chan bool
 }
 
 func New(
-	on_msg_callback func(string),
+	onMsgCallback func(string),
 	queues ConsumerQueues,
 	quit chan bool,
 ) (*Consumer, error) {
 
 	self := &Consumer{
-		queues:          queues,
-		on_msg_callback: on_msg_callback,
-		quit:            quit,
-		has_finished:    make(chan bool, 2),
+		queues:        queues,
+		onMsgCallback: onMsgCallback,
+		quit:          quit,
+		hasFinished:   make(chan bool, 2),
 	}
 
 	return self, nil
@@ -33,11 +33,11 @@ func New(
 
 func (self *Consumer) Finish() {
 	self.quit <- true
-	<-self.has_finished
+	<-self.hasFinished
 }
 
 func (self *Consumer) finish() {
-	self.has_finished <- true
+	self.hasFinished <- true
 }
 
 func (self *Consumer) Run() {
@@ -52,7 +52,7 @@ Loop:
 			if !open {
 				break Loop
 			}
-			self.on_msg_callback(m.Body)
+			self.onMsgCallback(m.Body)
 		}
 	}
 }

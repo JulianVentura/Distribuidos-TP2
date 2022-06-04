@@ -50,7 +50,7 @@ func (self *TCPConnection) Send(message []byte) error {
 	return nil
 }
 
-func (self *TCPConnection) Receive_with_timeout(message []byte, t time.Duration) error {
+func (self *TCPConnection) ReceiveWithTimeout(message []byte, t time.Duration) error {
 	//We set the deadline t (duration) from now
 	self.skt.SetReadDeadline(time.Now().Add(t))
 	err := self.Receive(message)

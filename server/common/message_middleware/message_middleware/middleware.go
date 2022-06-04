@@ -9,9 +9,9 @@ import (
 )
 
 type MessageMiddlewareConfig struct {
-	Address             string
-	Notify_on_finish    bool
-	Channel_buffer_size uint
+	Address           string
+	NotifyOnFinish    bool
+	ChannelBufferSize uint
 }
 
 type MessageMiddleware struct {
@@ -31,20 +31,20 @@ type QueueConfig struct {
 
 func Start(config MessageMiddlewareConfig) (*MessageMiddleware, error) {
 
-	config.Channel_buffer_size = 1000000 //TODO: Change hardcoded
+	config.ChannelBufferSize = 1000000 //TODO: Change hardcoded
 
 	self := &MessageMiddleware{
 		writers: make([]*WriteWorker, 0, 5), //Initial size
 		config:  config,
 	}
 
-	err := self.start_connection(config.Address)
+	err := self.startConnection(config.Address)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = self.declare_admin_queue()
+	err = self.declareAdminQueue()
 	if err != nil {
 		return nil, fmt.Errorf("Error trying to declare admin queue: %v", err)
 	}
@@ -52,8 +52,8 @@ func Start(config MessageMiddlewareConfig) (*MessageMiddleware, error) {
 	return self, nil
 }
 
-func (self *MessageMiddleware) declare_admin_queue() error {
-	_, err := self.queue_declare("admin_control", false)
+func (self *MessageMiddleware) declareAdminQueue() error {
+	_, err := self.queueDeclare("admin_control", false)
 	if err != nil {
 		return nil
 	}
@@ -61,7 +61,7 @@ func (self *MessageMiddleware) declare_admin_queue() error {
 	return nil
 }
 
-func (self *MessageMiddleware) start_connection(host string) error {
+func (self *MessageMiddleware) startConnection(host string) error {
 	conn, err := amqp.Dial(host)
 	if err != nil {
 		return Err.Ctx("Failed to connect to RabbitMQ", err)
@@ -89,40 +89,40 @@ func (self *MessageMiddleware) Finish() error {
 	return nil
 }
 
-func (self *MessageMiddleware) New_queue(config QueueConfig) (chan Message, error) {
+func (self *MessageMiddleware) NewQueue(config QueueConfig) (chan Message, error) {
 	switch config.Direction {
 	case "read":
-		return self.Read_queue(config)
+		return self.ReadQueue(config)
 	case "write":
-		return self.Write_queue(config)
+		return self.WriteQueue(config)
 	default:
 		return nil, fmt.Errorf("Error trying to create a queue: Direction %v is not recognized", config.Direction)
 	}
 }
 
-func (self *MessageMiddleware) Read_queue(config QueueConfig) (chan Message, error) {
+func (self *MessageMiddleware) ReadQueue(config QueueConfig) (chan Message, error) {
 	switch config.Class {
 	case "worker":
-		return self.create_read_worker_queue(&config)
+		return self.createReadWorkerQueue(&config)
 	case "topic":
-		return self.create_read_topic_queue(&config)
+		return self.createReadTopicQueue(&config)
 	case "fanout":
-		return self.create_read_fanout_queue(&config)
+		return self.createReadFanoutQueue(&config)
 	default:
 		return nil, fmt.Errorf("Error trying to create a read queue: Class %v is not recognized", config.Class)
 	}
 }
 
-func (self *MessageMiddleware) create_read_worker_queue(config *QueueConfig) (chan Message, error) {
-	channel := make(chan Message, self.config.Channel_buffer_size)
-	var q_channel <-chan amqp.Delivery
+func (self *MessageMiddleware) createReadWorkerQueue(config *QueueConfig) (chan Message, error) {
+	channel := make(chan Message, self.config.ChannelBufferSize)
+	var amqpChann <-chan amqp.Delivery
 	var err error
 
 	if len(config.Topic) > 0 {
 		if len(config.Source) < 1 {
 			return nil, fmt.Errorf("Error trying to create a read worker queue: source not provided")
 		}
-		q_channel, err = self.initialize_queue_and_exchange(
+		amqpChann, err = self.initializeQueueAndExchange(
 			config.Source,
 			"topic",
 			config.Name,
@@ -135,29 +135,29 @@ func (self *MessageMiddleware) create_read_worker_queue(config *QueueConfig) (ch
 			return nil, fmt.Errorf("Error trying to create a read worker queue: name not provided")
 		}
 		//Declare a queue with config.name name
-		queue, err := self.queue_declare(config.Name, false)
+		queue, err := self.queueDeclare(config.Name, false)
 		if err != nil {
 			return nil, Err.Ctx("Couldn't declare the queue", err)
 		}
 		//Get a channel from the queue
-		q_channel, err = self.consume_queue(queue.Name)
+		amqpChann, err = self.consumeQueue(queue.Name)
 		if err != nil {
 			return nil, Err.Ctx("Couldn't bind queue to exchange", err)
 		}
 	}
 
 	//We invoke a new worker, which will listen for new messages on the queue
-	go read_worker(q_channel, channel)
+	go readWorker(amqpChann, channel)
 
 	return channel, nil
 }
 
-func (self *MessageMiddleware) create_read_topic_queue(config *QueueConfig) (chan Message, error) {
-	channel := make(chan Message, self.config.Channel_buffer_size)
+func (self *MessageMiddleware) createReadTopicQueue(config *QueueConfig) (chan Message, error) {
+	channel := make(chan Message, self.config.ChannelBufferSize)
 	if len(config.Topic) < 1 || len(config.Source) < 1 {
 		return nil, fmt.Errorf("Error trying to create a read topic queue: topic or source not provided")
 	}
-	q_channel, err := self.initialize_queue_and_exchange(
+	amqpChann, err := self.initializeQueueAndExchange(
 		config.Source,
 		"topic",
 		config.Name,
@@ -167,17 +167,17 @@ func (self *MessageMiddleware) create_read_topic_queue(config *QueueConfig) (cha
 		return nil, fmt.Errorf("Error trying to create a read topic queue %v: %v", config.Source, err)
 	}
 	//We invoke a new worker, which will listen for new messages on the queue
-	go read_worker(q_channel, channel)
+	go readWorker(amqpChann, channel)
 
 	return channel, nil
 }
 
-func (self *MessageMiddleware) create_read_fanout_queue(config *QueueConfig) (chan Message, error) {
-	channel := make(chan Message, self.config.Channel_buffer_size)
+func (self *MessageMiddleware) createReadFanoutQueue(config *QueueConfig) (chan Message, error) {
+	channel := make(chan Message, self.config.ChannelBufferSize)
 	if len(config.Source) < 1 {
 		return nil, fmt.Errorf("Error trying to create a read fanout queue: source not provided")
 	}
-	q_channel, err := self.initialize_queue_and_exchange(
+	amqpChann, err := self.initializeQueueAndExchange(
 		config.Source,
 		"fanout",
 		config.Name,
@@ -187,15 +187,15 @@ func (self *MessageMiddleware) create_read_fanout_queue(config *QueueConfig) (ch
 	}
 
 	//We invoke a new worker, which will listen for new messages on the queue
-	go read_worker(q_channel, channel)
+	go readWorker(amqpChann, channel)
 
 	return channel, nil
 }
 
-func read_worker(input <-chan amqp.Delivery, output chan Message) {
+func readWorker(input <-chan amqp.Delivery, output chan Message) {
 	//Will continue until the connection is closed
 	for msg := range input {
-		messages := decode_string_slice(msg.Body)
+		messages := decodeStringSlice(msg.Body)
 		if messages[0] == "finish" {
 			err := msg.Nack(false, true)
 			if err != nil {
@@ -218,78 +218,78 @@ func read_worker(input <-chan amqp.Delivery, output chan Message) {
 	}
 }
 
-func (self *MessageMiddleware) initialize_queue_and_exchange(
-	exchange_name string,
-	exchange_type string,
-	queue_name string,
-	queue_topic string,
+func (self *MessageMiddleware) initializeQueueAndExchange(
+	exchangeName string,
+	exchangeType string,
+	queueName string,
+	queueTopic string,
 ) (<-chan amqp.Delivery, error) {
 	//Declare an exchange with the name 'source' and the class 'topic'
-	err := self.exchange_declare(exchange_name, exchange_type)
+	err := self.exchangeDeclare(exchangeName, exchangeType)
 	if err != nil {
 		return nil, Err.Ctx("Couldn't declare the exchange", err)
 	}
 	//Declare a new queue with the name 'name', which could be empty
-	queue, err := self.queue_declare(queue_name, false)
+	queue, err := self.queueDeclare(queueName, false)
 	if err != nil {
 		return nil, Err.Ctx("Couldn't declare the queue", err)
 	}
 	//Bind the queue to the exchange
-	err = self.queue_bind(queue.Name, queue_topic, exchange_name)
+	err = self.queueBind(queue.Name, queueTopic, exchangeName)
 	if err != nil {
 		return nil, Err.Ctx("Couldn't bind queue to exchange", err)
 	}
 	//Bind the queue to the admin "finish" topic
-	err = self.queue_bind(queue.Name, "finish", exchange_name)
+	err = self.queueBind(queue.Name, "finish", exchangeName)
 	if err != nil {
 		return nil, Err.Ctx("Couldn't bind queue to exchange, with topic finish", err)
 	}
 	//Get a channel from the queue
-	q_channel, err := self.consume_queue(queue.Name)
+	amqpChann, err := self.consumeQueue(queue.Name)
 	if err != nil {
 		return nil, Err.Ctx("Couldn't bind queue to exchange", err)
 	}
-	return q_channel, nil
+	return amqpChann, nil
 }
 
-func (self *MessageMiddleware) Write_queue(config QueueConfig) (chan Message, error) {
+func (self *MessageMiddleware) WriteQueue(config QueueConfig) (chan Message, error) {
 	switch config.Class {
 	case "worker":
-		return self.create_write_worker_queue(&config)
+		return self.createWriteWorkerQueue(&config)
 	case "topic":
-		return self.create_write_topic_queue(&config)
+		return self.createWriteTopicQueue(&config)
 	case "fanout":
-		return self.create_write_fanout_queue(&config)
+		return self.createWriteFanoutQueue(&config)
 	default:
 		return nil, fmt.Errorf("Error trying to create a write queue: Class %v is not recognized", config.Class)
 	}
 }
 
-func (self *MessageMiddleware) create_write_worker_queue(config *QueueConfig) (chan Message, error) {
-	channel := make(chan Message, self.config.Channel_buffer_size)
+func (self *MessageMiddleware) createWriteWorkerQueue(config *QueueConfig) (chan Message, error) {
+	channel := make(chan Message, self.config.ChannelBufferSize)
 	if len(config.Name) < 1 {
 		return nil, fmt.Errorf("Error trying to create a write worker queue: name not provided")
 	}
 
 	//Declare a new queue with the name 'name', which could be empty
-	_, err := self.queue_declare(config.Name, false)
+	_, err := self.queueDeclare(config.Name, false)
 	if err != nil {
 		return nil, fmt.Errorf("Error trying to create a write worker queue %v: %v", config.Name, err)
 	}
 
-	err = self.notify_new_write_queue_to_admin(config)
+	err = self.notifyNewWriteQueueToAdmin(config)
 	if err != nil {
 		return nil, fmt.Errorf("Error notifyng new queue to admin: %v", err)
 	}
 
-	writer := writer_worker(
+	writer := writerWorker(
 		config.Name,
 		"",
 		false,
 		config.Name,
 		channel,
 		self.channel,
-		self.config.Notify_on_finish,
+		self.config.NotifyOnFinish,
 	)
 
 	self.writers = append(self.writers, writer)
@@ -297,32 +297,32 @@ func (self *MessageMiddleware) create_write_worker_queue(config *QueueConfig) (c
 	return channel, nil
 }
 
-func (self *MessageMiddleware) create_write_topic_queue(config *QueueConfig) (chan Message, error) {
+func (self *MessageMiddleware) createWriteTopicQueue(config *QueueConfig) (chan Message, error) {
 	log.Debugf("Creating a work queue %v", config)
-	channel := make(chan Message, self.config.Channel_buffer_size)
+	channel := make(chan Message, self.config.ChannelBufferSize)
 	if len(config.Name) < 1 {
 		return nil, fmt.Errorf("Error trying to create a write topic queue: name not provided")
 	}
 
 	//Declare a new queue with the name 'name', which could be empty
-	err := self.exchange_declare(config.Name, "topic")
+	err := self.exchangeDeclare(config.Name, "topic")
 	if err != nil {
 		return nil, fmt.Errorf("Error trying to create a write topic queue %v: %v", config.Name, err)
 	}
 
-	err = self.notify_new_write_queue_to_admin(config)
+	err = self.notifyNewWriteQueueToAdmin(config)
 	if err != nil {
 		return nil, fmt.Errorf("Error notifyng new queue to admin: %v", err)
 	}
 
-	writer := writer_worker(
+	writer := writerWorker(
 		config.Name,
 		config.Name,
 		true,
 		"",
 		channel,
 		self.channel,
-		self.config.Notify_on_finish,
+		self.config.NotifyOnFinish,
 	)
 
 	self.writers = append(self.writers, writer)
@@ -330,31 +330,31 @@ func (self *MessageMiddleware) create_write_topic_queue(config *QueueConfig) (ch
 	return channel, nil
 }
 
-func (self *MessageMiddleware) create_write_fanout_queue(config *QueueConfig) (chan Message, error) {
-	channel := make(chan Message, self.config.Channel_buffer_size)
+func (self *MessageMiddleware) createWriteFanoutQueue(config *QueueConfig) (chan Message, error) {
+	channel := make(chan Message, self.config.ChannelBufferSize)
 	if len(config.Name) < 1 {
 		return nil, fmt.Errorf("Error trying to create a write fanout queue: name not provided")
 	}
 
 	//Declare a new queue with the name 'name', which could be empty
-	err := self.exchange_declare(config.Name, "fanout")
+	err := self.exchangeDeclare(config.Name, "fanout")
 	if err != nil {
 		return nil, fmt.Errorf("Error trying to create a write fanout queue %v: %v", config.Name, err)
 	}
 
-	err = self.notify_new_write_queue_to_admin(config)
+	err = self.notifyNewWriteQueueToAdmin(config)
 	if err != nil {
 		return nil, fmt.Errorf("Error notifyng new queue to admin: %v", err)
 	}
 
-	writer := writer_worker(
+	writer := writerWorker(
 		config.Name,
 		config.Name,
 		false,
 		"",
 		channel,
 		self.channel,
-		self.config.Notify_on_finish,
+		self.config.NotifyOnFinish,
 	)
 
 	self.writers = append(self.writers, writer)
@@ -362,7 +362,7 @@ func (self *MessageMiddleware) create_write_fanout_queue(config *QueueConfig) (c
 	return channel, nil
 }
 
-func (self *MessageMiddleware) exchange_declare(name string, class string) error {
+func (self *MessageMiddleware) exchangeDeclare(name string, class string) error {
 	return self.channel.ExchangeDeclare(
 		name,  // name
 		class, // type
@@ -374,7 +374,7 @@ func (self *MessageMiddleware) exchange_declare(name string, class string) error
 	)
 }
 
-func (self *MessageMiddleware) queue_declare(name string, exclusive bool) (amqp.Queue, error) {
+func (self *MessageMiddleware) queueDeclare(name string, exclusive bool) (amqp.Queue, error) {
 	return self.channel.QueueDeclare(
 		name,      // name
 		false,     // durable
@@ -385,17 +385,17 @@ func (self *MessageMiddleware) queue_declare(name string, exclusive bool) (amqp.
 	)
 }
 
-func (self *MessageMiddleware) queue_bind(name string, routing_key string, exchange string) error {
+func (self *MessageMiddleware) queueBind(name string, routingKey string, exchange string) error {
 	return self.channel.QueueBind(
-		name,        // queue name
-		routing_key, // routing key
-		exchange,    // exchange
+		name,       // queue name
+		routingKey, // routing key
+		exchange,   // exchange
 		false,
 		nil,
 	)
 }
 
-func (self *MessageMiddleware) consume_queue(name string) (<-chan amqp.Delivery, error) {
+func (self *MessageMiddleware) consumeQueue(name string) (<-chan amqp.Delivery, error) {
 	return self.channel.Consume(
 		name,  // queue
 		"",    // consumer
@@ -407,15 +407,15 @@ func (self *MessageMiddleware) consume_queue(name string) (<-chan amqp.Delivery,
 	)
 }
 
-func (self *MessageMiddleware) notify_new_write_queue_to_admin(config *QueueConfig) error {
+func (self *MessageMiddleware) notifyNewWriteQueueToAdmin(config *QueueConfig) error {
 
 	//TODO: Cambiar el nombre de la variable a algo que tenga más sentido
 	//Lo que estamos haciendo acá es no enviar el mensaje si se trata del admin
-	if !self.config.Notify_on_finish {
+	if !self.config.NotifyOnFinish {
 		return nil
 	}
 
-	target_queue := "admin_control"
+	targetQueue := "admin_control"
 	message := fmt.Sprintf("new_write,%v,%v,%v,%v,%v",
 		config.Name,
 		config.Class,
@@ -423,7 +423,7 @@ func (self *MessageMiddleware) notify_new_write_queue_to_admin(config *QueueConf
 		config.Source,
 		config.Direction)
 
-	err := publish([]string{message}, "", target_queue, self.channel)
+	err := publish([]string{message}, "", targetQueue, self.channel)
 
 	return err
 }

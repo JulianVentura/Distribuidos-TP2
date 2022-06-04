@@ -28,21 +28,21 @@ func (self *PostAboveAvgFilter) work(input string) (string, error) {
 		return "", fmt.Errorf("Received bad formated input")
 	}
 	id := split[0]
-	m_url := split[1]
+	memeUrl := split[1]
 	score, err := strconv.ParseFloat(split[2], 10)
 	if err != nil {
 		return "", fmt.Errorf("Couldn't parse score: %v", err)
 	}
 
 	if score >= self.avg {
-		r := []string{id, m_url}
+		r := []string{id, memeUrl}
 		return self.Parser.Write(r), nil
 	} else {
 		return "", fmt.Errorf("Data under average")
 	}
 }
 
-func test_function() {
+func testFunction() {
 	avg := float64(60)
 	lines := []string{
 		"a,url_a,41",
