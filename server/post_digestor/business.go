@@ -70,7 +70,22 @@ func (self *PostDigestor) generate_regex() {
 	//Post id
 	post_id_reg := `^[aA-zZ0-9]+$`
 	//Meme url
-	meme_url_reg := `((https)|(http))?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)`
+	valid_formats := []string{
+		"jpg",
+		"png",
+		"gifv",
+		"gif",
+		"jpeg",
+	}
+	for i, format := range valid_formats {
+		valid_formats[i] = fmt.Sprintf("(%v)", format)
+	}
+	// meme_url_reg := `((https)|(http))?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)`
+	// meme_url_reg := `^((https)|(http))?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)\.` + `({valid_formats})` + `(\?.*)?$`
+	base_url := `^((https)|(http))?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)\.`
+	final := `(\?.*)?$`
+	meme_url_reg := fmt.Sprintf("%v(%v)%v", base_url, strings.Join(valid_formats, "|"), final)
+
 	//Score
 	post_score_reg := `^-?[0-9]+$` //Support negative
 
