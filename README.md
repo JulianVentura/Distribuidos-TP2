@@ -70,9 +70,11 @@ loop-period: //Frecuencia de envío de posts y comentarios
   post: "1us"	
   comment: "1us"
 
-files-path:	//Path a los archivos de posts y comentarios
-  post: "./files/posts_small.csv"
-  comment: "./files/comments_small.csv"
+files-path:	//Path a los archivos
+  post: "./files/posts_small.csv" //De donde se leeran los posts
+  comment: "./files/comments_small.csv" //De donde se leeran los comentarios
+  sentiment-meme: "./files/sentiment_meme" //En donde se almacenará el meme descargado
+  school-memes: "./files/school_memes" //En dónde se almacenaran las urls de memes escolares
 
 log:
   level: "info"
