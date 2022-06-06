@@ -28,7 +28,6 @@ func NewFilter() StudentCommentFilter {
 }
 
 func (self *StudentCommentFilter) filter(input string) (string, error) {
-	// self.arrivals += 1
 	split := self.Parser.Read(input)
 	if len(split) != 3 {
 		return "", fmt.Errorf("Received bad formated input on SentimentAvgCalculator")

@@ -6,6 +6,9 @@
         "process_name": "Admin",
         "log_level": "info",
         "server_address": "admin:12345",
+        "mom_msg_batch_timeout": "5ms",
+        "mom_msg_batch_target_size": 10000000,
+        "mom_channel_buffer_size": 100000000,
         "queues": {
             "posts": {
                 "name": "posts_q",
@@ -39,6 +42,9 @@
     "post_digestor": {
         "process_name": "Post Digestor",
         "log_level": "info",
+        "mom_msg_batch_timeout": "10ms",
+        "mom_msg_batch_target_size": 1000000,
+        "mom_channel_buffer_size": 1000000,
         "queues": {
             "input": {
                 "name": "posts_q",
@@ -55,6 +61,9 @@
     "post_score_adder": {
         "process_name": "Post Score Adder",
         "log_level": "info",
+        "mom_msg_batch_timeout": "10ms",
+        "mom_msg_batch_target_size": 1000000,
+        "mom_channel_buffer_size": 1000,
         "queues": {
             "input": {
                 "name": "post_score_adder",
@@ -73,6 +82,9 @@
     "post_score_avg_calculator": {
         "process_name": "Post Score Avg Calculator",
         "log_level": "info",
+        "mom_msg_batch_timeout": "10ms",
+        "mom_msg_batch_target_size": 1000000,
+        "mom_channel_buffer_size": 1000,
         "queues": {
             "input": {
                 "name": "post_score_adder_result",
@@ -92,6 +104,9 @@
     "post_above_avg_filter": {
         "process_name": "Post Above Avg Filter",
         "log_level": "info",
+        "mom_msg_batch_timeout": "10ms",
+        "mom_msg_batch_target_size": 1000000,
+        "mom_channel_buffer_size": 1000,
         "queues": {
             "input_avg": {
                 "name": "",
@@ -117,6 +132,9 @@
     "comment_digestor": {
         "process_name": "Comment Digestor",
         "log_level": "info",
+        "mom_msg_batch_timeout": "10ms",
+        "mom_msg_batch_target_size": 1000000,
+        "mom_channel_buffer_size": 1000000,
         "queues": {
             "input": {
                 "name": "comments_q",
@@ -133,6 +151,9 @@
     "post_sentiment_avg_calculator": {
         "process_name": "Post Sentiment Avg Calculator",
         "log_level": "info",
+        "mom_msg_batch_timeout": "10ms",
+        "mom_msg_batch_target_size": 1000000,
+        "mom_channel_buffer_size": 1000,
         "queues": {
             "input": {
                 "name": "",
@@ -151,6 +172,9 @@
     "sentiment_joiner": {
         "process_name": "Sentiment Joiner",
         "log_level": "info",
+        "mom_msg_batch_timeout": "10ms",
+        "mom_msg_batch_target_size": 1000000,
+        "mom_channel_buffer_size": 1000,
 		"keep_id": false,
 		"base_body_size": 1,
 		"to_join_body_size": 1,
@@ -180,6 +204,9 @@
     "student_joiner": {
         "process_name": "Student Joiner",
         "log_level": "info",
+        "mom_msg_batch_timeout": "10ms",
+        "mom_msg_batch_target_size": 1000000,
+        "mom_channel_buffer_size": 1000,
 		"keep_id": false,
 		"base_body_size": 1,
 		"to_join_body_size": 0,
@@ -209,6 +236,9 @@
     "student_comment_filter": {
         "process_name": "Student Comment Filter",
         "log_level": "info",
+        "mom_msg_batch_timeout": "10ms",
+        "mom_msg_batch_target_size": 1000000,
+        "mom_channel_buffer_size": 1000,
         "queues": {
             "input": {
                 "name": "student_comment_filter",
@@ -227,6 +257,9 @@
     "best_sentiment_avg_downloader": {
         "process_name": "Best Sentiment Avg Downloader",
         "log_level": "info",
+        "mom_msg_batch_timeout": "10ms",
+        "mom_msg_batch_target_size": 1000000,
+        "mom_channel_buffer_size": 1000,
         "queues": {
             "input": {
                 "name": "sentiment_joiner_result",

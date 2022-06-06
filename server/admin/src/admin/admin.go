@@ -22,11 +22,10 @@ type AdminQueues struct {
 }
 
 type Admin struct {
-	queues              AdminQueues
-	skt                 *socket.ServerSocket
-	mutex               sync.Mutex
-	computationFinished chan bool //TODO: Ver si dejar
-	quit                chan bool
+	queues AdminQueues
+	skt    *socket.ServerSocket
+	mutex  sync.Mutex
+	quit   chan bool
 }
 
 func New(
@@ -41,11 +40,10 @@ func New(
 	}
 
 	self := &Admin{
-		queues:              queues,
-		skt:                 &skt,
-		mutex:               sync.Mutex{},
-		computationFinished: make(chan bool, 2),
-		quit:                quit,
+		queues: queues,
+		skt:    &skt,
+		mutex:  sync.Mutex{},
+		quit:   quit,
 	}
 
 	go func() {
@@ -91,21 +89,23 @@ func (self *Admin) clientWorker() {
 	//Recibir el stream de datos
 	err = self.receiveStreamFromClient(client) //Problema: Si enviamos quit y no hay datos, nos bloqueamos
 	if err != nil {
+		self.sendError(client)
 		log.Errorf("Error receiving stream from client: %v", err)
 		return
 	}
-	//Esperar a que finalice el cómputo de datos
-	// select {
-	// case <-self.computation_finished:
-	// 	break
-	// case <-self.quit:
-	// 	return
-	// }
+
 	//Enviar los resultados
 	err = self.sendResultsToClient(client)
 	if err != nil {
+		self.sendError(client)
 		log.Errorf("Error sending results to client: %v", err)
 	}
+}
+
+func (self *Admin) sendError(client *socket.TCPConnection) {
+	protocol.Send(client, &protocol.Error{
+		Message: "Internal processing error",
+	})
 }
 
 func (self *Admin) waitForNewClient() (*socket.TCPConnection, error) {
@@ -123,21 +123,24 @@ func (self *Admin) waitForNewClient() (*socket.TCPConnection, error) {
 }
 
 func (self *Admin) sendResultsToClient(client *socket.TCPConnection) error {
-	log.Infof("Sending results to client")
+	log.Infof("Waiting for computation to complete")
 	//Get computation results
 	avgMsg := <-self.queues.AverageResult
+	log.Infof("Post Score Avg finished")
 	bestMemeMsg := <-self.queues.BestMeme
+	log.Infof("Best Sentiment Meme finished")
 	schoolMemes := make([]string, 0, 100)
 	for memeUrl := range self.queues.SchoolMemes {
 		schoolMemes = append(schoolMemes, memeUrl.Body)
 	}
+	log.Infof("Best School Memes finished")
 
 	avg, err := strconv.ParseFloat(avgMsg.Body, 64)
 	if err != nil {
-		//TODO: Ver si devolvemos error al cliente
 		return fmt.Errorf("Critical error, couldn't parse average result")
 	}
 
+	log.Infof("Sending results to client")
 	//Send results to client
 	protocol.Send(client, &protocol.Response{
 		PostScoreAvg:      avg,
@@ -149,8 +152,8 @@ func (self *Admin) sendResultsToClient(client *socket.TCPConnection) error {
 }
 
 func (self *Admin) receiveStreamFromClient(client *socket.TCPConnection) error {
+	// Receive posts and streams from client and queue them
 	log.Debugf("Receiving streams from client")
-	//Recibir un mensaje del cliente, parsearlo, encolarlo en la cola adecuada, repetir
 	postStreamFinished := false
 	commentStreamFinished := false
 
@@ -162,9 +165,7 @@ Loop:
 		case <-self.quit:
 			return fmt.Errorf("Stream canceled by request")
 		default:
-			//TODO: Pasar a config
-			//TODO: Pasar a un canal directamente desde el propio socket, eso es mas Golang
-			message, err := protocol.ReceiveWithTimeout(client, time.Second) //TODO: Esto parecería no estar funcionando
+			message, err := protocol.ReceiveWithTimeout(client, time.Second)
 			if err == socket.TimeoutError {
 				continue
 			}
@@ -174,7 +175,6 @@ Loop:
 			}
 			switch m := message.(type) {
 			case *protocol.Post:
-				// log.Debugf("Received post: %v", m.Post)
 				self.queues.Posts <- mom.Message{Body: m.Post}
 				postsReceived += 1
 				if postsReceived%10000 == 0 {

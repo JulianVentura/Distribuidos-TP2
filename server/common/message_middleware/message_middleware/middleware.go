@@ -3,15 +3,18 @@ package message_middleware
 import (
 	Err "distribuidos/tp2/common/errors"
 	"fmt"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	amqp "github.com/streadway/amqp"
 )
 
 type MessageMiddlewareConfig struct {
-	Address           string
-	NotifyOnFinish    bool
-	ChannelBufferSize uint
+	Address                string
+	NotifyOnFinish         bool
+	ChannelBufferSize      uint
+	MessageBatchSizeTarget uint
+	MessageBatchTimeout    time.Duration
 }
 
 type MessageMiddleware struct {
@@ -29,12 +32,12 @@ type QueueConfig struct {
 	Direction string
 }
 
+const WRITER_WORKERS_INIT_SIZE = 1
+
 func Start(config MessageMiddlewareConfig) (*MessageMiddleware, error) {
 
-	config.ChannelBufferSize = 1000000 //TODO: Change hardcoded
-
 	self := &MessageMiddleware{
-		writers: make([]*WriteWorker, 0, 5), //Initial size
+		writers: make([]*WriteWorker, 0, WRITER_WORKERS_INIT_SIZE),
 		config:  config,
 	}
 
@@ -118,8 +121,8 @@ func (self *MessageMiddleware) createReadWorkerQueue(config *QueueConfig) (chan 
 	var amqpChann <-chan amqp.Delivery
 	var err error
 
-	if len(config.Topic) > 0 {
-		if len(config.Source) < 1 {
+	if config.Topic != "" {
+		if config.Source == "" {
 			return nil, fmt.Errorf("Error trying to create a read worker queue: source not provided")
 		}
 		amqpChann, err = self.initializeQueueAndExchange(
@@ -131,7 +134,7 @@ func (self *MessageMiddleware) createReadWorkerQueue(config *QueueConfig) (chan 
 			return nil, fmt.Errorf("Error trying to create a read worker queue %v: %v", config.Name, err)
 		}
 	} else {
-		if len(config.Name) < 1 {
+		if config.Name == "" {
 			return nil, fmt.Errorf("Error trying to create a read worker queue: name not provided")
 		}
 		//Declare a queue with config.name name
@@ -154,7 +157,7 @@ func (self *MessageMiddleware) createReadWorkerQueue(config *QueueConfig) (chan 
 
 func (self *MessageMiddleware) createReadTopicQueue(config *QueueConfig) (chan Message, error) {
 	channel := make(chan Message, self.config.ChannelBufferSize)
-	if len(config.Topic) < 1 || len(config.Source) < 1 {
+	if config.Topic == "" || config.Source == "" {
 		return nil, fmt.Errorf("Error trying to create a read topic queue: topic or source not provided")
 	}
 	amqpChann, err := self.initializeQueueAndExchange(
@@ -174,7 +177,7 @@ func (self *MessageMiddleware) createReadTopicQueue(config *QueueConfig) (chan M
 
 func (self *MessageMiddleware) createReadFanoutQueue(config *QueueConfig) (chan Message, error) {
 	channel := make(chan Message, self.config.ChannelBufferSize)
-	if len(config.Source) < 1 {
+	if config.Source == "" {
 		return nil, fmt.Errorf("Error trying to create a read fanout queue: source not provided")
 	}
 	amqpChann, err := self.initializeQueueAndExchange(
@@ -267,7 +270,7 @@ func (self *MessageMiddleware) WriteQueue(config QueueConfig) (chan Message, err
 
 func (self *MessageMiddleware) createWriteWorkerQueue(config *QueueConfig) (chan Message, error) {
 	channel := make(chan Message, self.config.ChannelBufferSize)
-	if len(config.Name) < 1 {
+	if config.Name == "" {
 		return nil, fmt.Errorf("Error trying to create a write worker queue: name not provided")
 	}
 
@@ -282,14 +285,20 @@ func (self *MessageMiddleware) createWriteWorkerQueue(config *QueueConfig) (chan
 		return nil, fmt.Errorf("Error notifyng new queue to admin: %v", err)
 	}
 
+	wConfig := WriteWorkerConfig{
+		queueName:              config.Name,
+		exchange:               "",
+		routingKeyByMsg:        false,
+		routingKey:             config.Name,
+		notifyOnFinish:         self.config.NotifyOnFinish,
+		messageBatchSizeTarget: self.config.MessageBatchSizeTarget,
+		messageBatchTimeout:    self.config.MessageBatchTimeout,
+	}
+
 	writer := writerWorker(
-		config.Name,
-		"",
-		false,
-		config.Name,
+		wConfig,
 		channel,
 		self.channel,
-		self.config.NotifyOnFinish,
 	)
 
 	self.writers = append(self.writers, writer)
@@ -300,7 +309,7 @@ func (self *MessageMiddleware) createWriteWorkerQueue(config *QueueConfig) (chan
 func (self *MessageMiddleware) createWriteTopicQueue(config *QueueConfig) (chan Message, error) {
 	log.Debugf("Creating a work queue %v", config)
 	channel := make(chan Message, self.config.ChannelBufferSize)
-	if len(config.Name) < 1 {
+	if config.Name == "" {
 		return nil, fmt.Errorf("Error trying to create a write topic queue: name not provided")
 	}
 
@@ -315,14 +324,20 @@ func (self *MessageMiddleware) createWriteTopicQueue(config *QueueConfig) (chan 
 		return nil, fmt.Errorf("Error notifyng new queue to admin: %v", err)
 	}
 
+	wConfig := WriteWorkerConfig{
+		queueName:              config.Name,
+		exchange:               config.Name,
+		routingKeyByMsg:        true,
+		routingKey:             "",
+		notifyOnFinish:         self.config.NotifyOnFinish,
+		messageBatchSizeTarget: self.config.MessageBatchSizeTarget,
+		messageBatchTimeout:    self.config.MessageBatchTimeout,
+	}
+
 	writer := writerWorker(
-		config.Name,
-		config.Name,
-		true,
-		"",
+		wConfig,
 		channel,
 		self.channel,
-		self.config.NotifyOnFinish,
 	)
 
 	self.writers = append(self.writers, writer)
@@ -332,7 +347,7 @@ func (self *MessageMiddleware) createWriteTopicQueue(config *QueueConfig) (chan 
 
 func (self *MessageMiddleware) createWriteFanoutQueue(config *QueueConfig) (chan Message, error) {
 	channel := make(chan Message, self.config.ChannelBufferSize)
-	if len(config.Name) < 1 {
+	if config.Name == "" {
 		return nil, fmt.Errorf("Error trying to create a write fanout queue: name not provided")
 	}
 
@@ -347,14 +362,20 @@ func (self *MessageMiddleware) createWriteFanoutQueue(config *QueueConfig) (chan
 		return nil, fmt.Errorf("Error notifyng new queue to admin: %v", err)
 	}
 
+	wConfig := WriteWorkerConfig{
+		queueName:              config.Name,
+		exchange:               config.Name,
+		routingKeyByMsg:        false,
+		routingKey:             "",
+		notifyOnFinish:         self.config.NotifyOnFinish,
+		messageBatchSizeTarget: self.config.MessageBatchSizeTarget,
+		messageBatchTimeout:    self.config.MessageBatchTimeout,
+	}
+
 	writer := writerWorker(
-		config.Name,
-		config.Name,
-		false,
-		"",
+		wConfig,
 		channel,
 		self.channel,
-		self.config.NotifyOnFinish,
 	)
 
 	self.writers = append(self.writers, writer)

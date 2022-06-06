@@ -9,34 +9,27 @@ import (
 )
 
 type SentimentAvgCalculator struct {
-	posts    map[string][]float64
-	Parser   utils.MessageParser
-	arrivals uint
+	posts  map[string][]float32
+	Parser utils.MessageParser
+	start  uint64
 }
 
 func NewCalculator() SentimentAvgCalculator {
 
 	return SentimentAvgCalculator{
-		posts:  make(map[string][]float64, 100), //Initial value
+		posts:  make(map[string][]float32, 100), //Initial value
 		Parser: utils.NewParser(),
 	}
 }
 
-func (self *SentimentAvgCalculator) info() {
-	//TODO: Eliminate this. It's only for debugging purposes
-	log.Infof("Arrivals: %v, Written: %v", self.arrivals, len(self.posts))
-}
-
 func (self *SentimentAvgCalculator) add(input string) {
-	log.Debugf("Received: %v", input)
-	self.arrivals += 1
 	split := self.Parser.Read(input)
 	if len(split) != 3 {
 		log.Errorf("Received bad formated input on SentimentAvgCalculator")
 		return
 	}
 	postId := split[0]
-	sentiment, err := strconv.ParseFloat(split[1], 64)
+	sentiment, err := strconv.ParseFloat(split[1], 32)
 	if err != nil {
 		log.Errorf("Sentiment bad formated: %v", err)
 		return
@@ -44,10 +37,10 @@ func (self *SentimentAvgCalculator) add(input string) {
 
 	_, exists := self.posts[postId]
 	if !exists {
-		self.posts[postId] = []float64{sentiment, 1.0}
+		self.posts[postId] = []float32{float32(sentiment), 1.0}
 		return
 	}
-	self.posts[postId][0] += sentiment
+	self.posts[postId][0] += float32(sentiment)
 	self.posts[postId][1] += 1.0
 }
 

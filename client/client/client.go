@@ -53,15 +53,15 @@ func Start(config ClientConfig) (*Client, error) {
 		config:         config,
 		postsSent:      0,
 		commentsSent:   0,
-		toSend:         make(chan protocol.Encodable, 1000),
+		toSend:         make(chan protocol.Encodable, 100000),
 		serverResponse: make(chan protocol.Encodable, 2),
 		quit:           make(chan bool, 2),
 		hasFinished:    make(chan bool, 2),
 		finished:       sync.WaitGroup{},
 	}
 
-	postChann := make(chan string, 100)
-	commentChann := make(chan string, 100)
+	postChann := make(chan string, 10000)
+	commentChann := make(chan string, 10000)
 
 	err = readFromFile(
 		config.FilePathPost,
@@ -227,7 +227,7 @@ func (self *Client) receiveFromServer() {
 		self.quit <- true
 		return
 	default:
-		response, err := protocol.Receive(self.server) //TODO: Aca habria que usar timeout
+		response, err := protocol.Receive(self.server)
 		if err != nil {
 			log.Error(Err.Ctx("Error receiving response from server", err))
 			return

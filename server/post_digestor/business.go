@@ -10,12 +10,10 @@ import (
 )
 
 type PostDigestor struct {
-	postIdRegex     *regexp.Regexp
-	memeUrlRegex    *regexp.Regexp
-	postScoreRegex  *regexp.Regexp
-	Parser          utils.MessageParser
-	receivedCounter uint
-	writtenCounter  uint
+	postIdRegex    *regexp.Regexp
+	memeUrlRegex   *regexp.Regexp
+	postScoreRegex *regexp.Regexp
+	Parser         utils.MessageParser
 }
 
 func NewDigestor() PostDigestor {
@@ -28,16 +26,10 @@ func NewDigestor() PostDigestor {
 	return self
 }
 
-// func (self *PostDigestor) info() {
-// 	//TODO: Eliminate this. It's only for debugging purposes
-// 	log.Infof("Received: %v. Written: %v", self.received_counter, self.written_counter)
-// }
-
 func (self *PostDigestor) filter(input string) (string, error) {
 
 	log.Debugf("Received: %v", input)
 
-	self.receivedCounter += 1
 	postIdIdx := 1
 	postMemeIdx := 8
 	postScoreIdx := 11

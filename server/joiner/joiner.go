@@ -15,36 +15,24 @@ type JoinerConfig struct {
 }
 
 type Joiner struct {
-	table          map[string]string
-	joined         map[string]bool
-	Parser         utils.MessageParser
-	config         JoinerConfig
-	postArrival    uint
-	commentArrival uint
-	joinWritten    uint
+	table  map[string]string
+	joined map[string]bool
+	Parser utils.MessageParser
+	config JoinerConfig
 }
 
 func NewJoiner(config JoinerConfig) Joiner {
 
 	return Joiner{
-		table:          make(map[string]string, 100), //Initial value
-		joined:         make(map[string]bool, 100),
-		Parser:         utils.NewParser(),
-		config:         config,
-		postArrival:    0,
-		commentArrival: 0,
-		joinWritten:    0,
+		table:  make(map[string]string, 100), //Initial value
+		joined: make(map[string]bool, 100),
+		Parser: utils.NewParser(),
+		config: config,
 	}
 }
 
-// func (self *Joiner) info() {
-// 	//TODO: Eliminate this. It's only for debugging purposes
-// 	log.Infof("Posts: %v, Comments: %v, Written: %v", self.post_arrival, self.comment_arrival, self.join_written)
-// }
-
 func (self *Joiner) Add(input string) {
 	log.Debugf("Add Received: %v", input)
-	self.postArrival += 1
 	splits := self.Parser.Read(input)
 	if len(splits) < int(self.config.baseBodySize)+1 {
 		log.Errorf("Received bad base input on joiner")
@@ -62,7 +50,6 @@ func (self *Joiner) Add(input string) {
 
 func (self *Joiner) Join(input string) (string, error) {
 	log.Debugf("Join Received: %v", input)
-	self.commentArrival += 1
 	splits := self.Parser.Read(input)
 	if len(splits) < int(self.config.toJoinBodySize)+1 {
 		log.Errorf("Received bad join input on joiner")
@@ -98,12 +85,11 @@ func (self *Joiner) Join(input string) (string, error) {
 			self.joined[r] = true
 		}
 	}
-	self.joinWritten += 1
 
 	return r, nil
 }
 
-func test_function() {
+func testFunction() {
 	toAdd := []string{
 		"id1,0.23,a",
 		"id2,0.1",

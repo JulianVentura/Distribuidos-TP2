@@ -14,7 +14,6 @@ type BestSentimentAvgDownloader struct {
 	Best_score float64
 	Best       string
 	Parser     utils.MessageParser
-	arrivals   uint
 }
 
 func NewDownloader() BestSentimentAvgDownloader {
@@ -25,14 +24,8 @@ func NewDownloader() BestSentimentAvgDownloader {
 	}
 }
 
-func (self *BestSentimentAvgDownloader) info() {
-	//TODO: Eliminate this. It's only for debugging purposes
-	log.Infof("Arrivals: %v", self.arrivals)
-}
-
 func (self *BestSentimentAvgDownloader) work(input string) {
 	log.Debugf("Received: %v", input)
-	self.arrivals += 1
 
 	split := self.Parser.Read(input)
 	if len(split) != 2 {
@@ -51,7 +44,7 @@ func (self *BestSentimentAvgDownloader) work(input string) {
 	}
 }
 
-func (self *BestSentimentAvgDownloader) get_result() string {
+func (self *BestSentimentAvgDownloader) getResult() string {
 	resp, err := http.Get(self.Best)
 	if err != nil {
 		log.Errorf("Error getting meme of url %v: %v", self.Best, err)

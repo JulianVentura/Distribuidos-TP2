@@ -6,8 +6,10 @@ import (
 	"io/ioutil"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	mom "distribuidos/tp2/server/common/message_middleware/message_middleware"
 	"distribuidos/tp2/server/common/utils"
@@ -233,6 +235,9 @@ func StartWorker(config WorkerConfig) (Worker, error) {
 	addIfNotExists(&config.Envs, "log_level")
 	addIfNotExists(&config.Envs, "process_name")
 	addIfNotExists(&config.Envs, "process_group")
+	addIfNotExists(&config.Envs, "mom_msg_batch_target_size")
+	addIfNotExists(&config.Envs, "mom_msg_batch_timeout")
+	addIfNotExists(&config.Envs, "mom_channel_buffer_size")
 	// - Definir señal de quit
 	quit := StartQuitSignal()
 	// - Config parse
@@ -244,6 +249,22 @@ func StartWorker(config WorkerConfig) (Worker, error) {
 	if err := initLogger(cfg.Envs["log_level"]); err != nil {
 		return Worker{}, fmt.Errorf("Couldn't start logger: %v", err)
 	}
+
+	//- Middleware config parse
+	mom_timeout, err := time.ParseDuration(cfg.Envs["mom_msg_batch_timeout"])
+	if err != nil {
+		return Worker{}, fmt.Errorf("Couldn't parse mom_msg_batch_timeout as time.Duration: %v", err)
+	}
+
+	mom_batch_size, err := strconv.ParseUint(cfg.Envs["mom_msg_batch_target_size"], 10, 64)
+	if err != nil {
+		return Worker{}, fmt.Errorf("Couldn't parse mom_msg_batch_target_size: %v", err)
+	}
+	mom_chann_buff_size, err := strconv.ParseUint(cfg.Envs["mom_channel_buffer_size"], 10, 64)
+	if err != nil {
+		return Worker{}, fmt.Errorf("Couldn't parse mom_channel_buffer_size: %v", err)
+	}
+
 	log.Infof("Starting %v...", cfg.Envs["process_name"])
 
 	//Expand the queues topic with process id
@@ -254,8 +275,11 @@ func StartWorker(config WorkerConfig) (Worker, error) {
 
 	// - Mom initialization
 	mConfig := mom.MessageMiddlewareConfig{
-		Address:        cfg.Envs["mom_address"],
-		NotifyOnFinish: true,
+		Address:                cfg.Envs["mom_address"],
+		NotifyOnFinish:         true,
+		ChannelBufferSize:      uint(mom_chann_buff_size),
+		MessageBatchSizeTarget: uint(mom_batch_size),
+		MessageBatchTimeout:    mom_timeout,
 	}
 
 	messageMiddleware, err := mom.Start(mConfig)
@@ -304,7 +328,7 @@ func initConfig(config *WorkerConfig) (InitConfig, error) {
 	id := cfg.Envs["id"]
 	processGroup := cfg.Envs["process_group"]
 
-	if len(id) < 1 || len(processGroup) < 1 {
+	if id == "" || processGroup == "" {
 		return cfg, fmt.Errorf("Couldn't parse id or process_group")
 	}
 

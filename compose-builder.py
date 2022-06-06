@@ -123,16 +123,16 @@ def main():
 
     worker_number = {
         "admin": 1,
-        "post-score-adder": 4,
-        "post-digestor": 4,
+        "post-score-adder": 1,
+        "post-digestor": 2,
         "post-score-avg-calculator": 1,
-        "post-above-avg-filter": 4,
+        "post-above-avg-filter": 2,
         "best-sentiment-avg-downloader": 1,
-        "sentiment-joiner": 4,
-        "student-joiner": 4,
-        "comment-digestor": 4,
-        "post-sentiment-avg-calculator": 4,
-        "student-comment-filter": 4,
+        "sentiment-joiner": 2,
+        "student-joiner": 2,
+        "comment-digestor": 2,
+        "post-sentiment-avg-calculator": 2,
+        "student-comment-filter": 2,
     }
 
     config = {

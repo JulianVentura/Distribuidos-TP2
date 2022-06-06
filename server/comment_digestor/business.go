@@ -9,18 +9,11 @@ import (
 )
 
 type CommentDigestor struct {
-	permalingRegex  *regexp.Regexp
-	sentimentRegex  *regexp.Regexp
-	bodyRegex       *regexp.Regexp
-	Parser          utils.MessageParser
-	receivedCounter uint //TODO: Delete this
-	writtenCounter  uint
+	permalingRegex *regexp.Regexp
+	sentimentRegex *regexp.Regexp
+	bodyRegex      *regexp.Regexp
+	Parser         utils.MessageParser
 }
-
-// func (self *CommentDigestor) info() {
-// 	//TODO: Eliminate this. It's only for debugging purposes
-// 	log.Infof("Received: %v. Written: %v", self.received_counter, self.written_counter)
-// }
 
 func NewDigestor() CommentDigestor {
 	self := CommentDigestor{
@@ -33,7 +26,6 @@ func NewDigestor() CommentDigestor {
 
 func (self *CommentDigestor) filter(input string) (string, error) {
 	log.Debugf("Received: %v", input)
-	self.receivedCounter += 1
 
 	permalinkIdx := 6
 	bodyIdx := 7
@@ -63,8 +55,6 @@ func (self *CommentDigestor) filter(input string) (string, error) {
 
 	output := []string{postId, sentiment, body}
 	result := self.Parser.Write(output)
-
-	self.writtenCounter += 1
 
 	return result, nil
 }

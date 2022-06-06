@@ -9,52 +9,50 @@ import (
 	amqp "github.com/streadway/amqp"
 )
 
+type WriteWorkerConfig struct {
+	queueName              string
+	exchange               string
+	routingKeyByMsg        bool
+	routingKey             string
+	notifyOnFinish         bool
+	messageBatchSizeTarget uint
+	messageBatchTimeout    time.Duration
+}
+
 type WriteWorker struct {
-	queueName       string
-	exchange        string
-	routingKeyByMsg bool
-	routingKey      string
-	input           chan Message
-	output          *amqp.Channel
-	notifyOnFinish  bool
-	batchTable      BatchTable
-	quit            chan bool
-	finished        sync.WaitGroup
+	config     WriteWorkerConfig
+	input      chan Message
+	output     *amqp.Channel
+	batchTable BatchTable
+	quit       chan bool
+	finished   sync.WaitGroup
 }
 
 func writerWorker(
-	queueName string,
-	exchange string,
-	routingKeyBybsg bool,
-	routingKey string,
+	config WriteWorkerConfig,
 	input chan Message,
 	output *amqp.Channel,
-	notifyOnFinish bool) *WriteWorker {
+) *WriteWorker {
 
 	self := &WriteWorker{
-		queueName:       queueName,
-		exchange:        exchange,
-		routingKeyByMsg: routingKeyBybsg,
-		routingKey:      routingKey,
-		input:           input,
-		output:          output,
-		quit:            make(chan bool, 2),
-		notifyOnFinish:  notifyOnFinish,
+		config: config,
+		input:  input,
+		output: output,
+		quit:   make(chan bool, 2),
 	}
 
-	//TODO: Config
-	self.batchTable = createBatchTable(self.encodeAndSend, uint(1_000_000)) //1Mb
+	self.batchTable = createBatchTable(self.encodeAndSend, config.messageBatchSizeTarget)
 	self.finished.Add(1)
 
 	go self.run()
-	log.Debugf("Writer of queue %v started", self.queueName)
+	log.Debugf("Writer of queue %v started", self.config.queueName)
 
 	return self
 }
 
 func (self *WriteWorker) encodeAndSend(topic string, messages []string) {
 	if err := self.sendMessages(messages, topic); err != nil {
-		log.Errorf("Error sending message on writer of %v", self.queueName)
+		log.Errorf("Error sending message on writer of %v", self.config.queueName)
 		return
 	}
 }
@@ -73,7 +71,7 @@ Loop:
 			self.batchTable.flush()
 		case msg, more := <-self.input:
 			if self.batchTable.isEmpty() {
-				timeout = time.After(time.Millisecond * 10) //TODO: Config
+				timeout = time.After(self.config.messageBatchTimeout)
 			}
 			if !more {
 				break Loop
@@ -85,7 +83,7 @@ Loop:
 		}
 	}
 
-	log.Debugf("Writer of queue %v finishing", self.queueName)
+	log.Debugf("Writer of queue %v finishing", self.config.queueName)
 	self.batchTable.flush()
 	self.notifyFinish()
 	self.finished.Done()
@@ -106,12 +104,12 @@ Loop:
 
 func (self *WriteWorker) notifyFinish() {
 
-	if !self.notifyOnFinish {
+	if !self.config.notifyOnFinish {
 		return
 	}
 
 	targetQueue := "admin_control"
-	msg := fmt.Sprintf("finish,%v", self.queueName)
+	msg := fmt.Sprintf("finish,%v", self.config.queueName)
 	err := publish([]string{msg}, "", targetQueue, self.output)
 	if err != nil {
 		log.Errorf("Error trying to notify mom admin: %v", err)
@@ -120,10 +118,10 @@ func (self *WriteWorker) notifyFinish() {
 
 func (self *WriteWorker) sendMessages(messages []string, topic string) error {
 	var routKey string
-	if self.routingKeyByMsg {
+	if self.config.routingKeyByMsg {
 		routKey = topic
 	} else {
-		routKey = self.routingKey
+		routKey = self.config.routingKey
 	}
-	return publish(messages, self.exchange, routKey, self.output)
+	return publish(messages, self.config.exchange, routKey, self.output)
 }

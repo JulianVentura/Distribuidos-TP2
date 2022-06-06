@@ -3,12 +3,12 @@ server:
   address: "admin:12345"
 
 loop-period: 
-  post: "100ns"
-  comment: "100ns"
+  post: "500us"
+  comment: "500us"
 
 files-path:
-  post: "./files/posts_medium.csv"
-  comment: "./files/comments_medium.csv"
+  post: "./files/posts_full.csv"
+  comment: "./files/comments_full.csv"
   sentiment-meme: "./files/sentiment_meme"
   school-memes: "./files/school_memes"
 

@@ -10,7 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func worker_callback(envs map[string]string, queues map[string]chan mom.Message, quit chan bool) {
+func workerCallback(envs map[string]string, queues map[string]chan mom.Message, quit chan bool) {
 	// - Create the business structure
 	downloader := NewDownloader()
 
@@ -23,8 +23,7 @@ func worker_callback(envs map[string]string, queues map[string]chan mom.Message,
 	}
 	consumer.Run()
 
-	result := downloader.get_result()
-	log.Infof("Meme of size %v", len(result))
+	result := downloader.getResult()
 	//- Send the result into result queue
 	queues["result"] <- mom.Message{
 		Body: result,
@@ -41,13 +40,13 @@ func main() {
 		},
 	}
 
-	process_worker, err := worker.StartWorker(cfg)
+	processWorker, err := worker.StartWorker(cfg)
 	if err != nil {
 		fmt.Printf("Error starting new process worker: %v\n", err)
 		return
 	}
-	defer process_worker.Finish()
+	defer processWorker.Finish()
 
 	// - Run the process worker
-	process_worker.Run(worker_callback)
+	processWorker.Run(workerCallback)
 }
