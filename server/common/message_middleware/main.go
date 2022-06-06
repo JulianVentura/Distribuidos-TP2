@@ -25,7 +25,7 @@ func main() {
 
 	//TODO: Levantar todo de config
 	quit := worker.StartQuitSignal()
-	if err := InitLogger("info"); err != nil {
+	if err := InitLogger("debug"); err != nil {
 		fmt.Println("Couldn't initialize logger")
 		return
 	}

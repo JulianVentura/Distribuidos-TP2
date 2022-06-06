@@ -47,6 +47,12 @@ func Start(config MessageMiddlewareConfig) (*MessageMiddleware, error) {
 		return nil, err
 	}
 
+	err = self.channel.Qos(1, 0, true)
+
+	if err != nil {
+		return nil, err
+	}
+
 	err = self.declareAdminQueue()
 	if err != nil {
 		return nil, fmt.Errorf("Error trying to declare admin queue: %v", err)
@@ -120,7 +126,7 @@ func (self *MessageMiddleware) createReadWorkerQueue(config *QueueConfig) (chan 
 	channel := make(chan Message, self.config.ChannelBufferSize)
 	var amqpChann <-chan amqp.Delivery
 	var err error
-
+	var queueOrigin string
 	if config.Topic != "" {
 		if config.Source == "" {
 			return nil, fmt.Errorf("Error trying to create a read worker queue: source not provided")
@@ -133,6 +139,7 @@ func (self *MessageMiddleware) createReadWorkerQueue(config *QueueConfig) (chan 
 		if err != nil {
 			return nil, fmt.Errorf("Error trying to create a read worker queue %v: %v", config.Name, err)
 		}
+		queueOrigin = config.Source
 	} else {
 		if config.Name == "" {
 			return nil, fmt.Errorf("Error trying to create a read worker queue: name not provided")
@@ -147,8 +154,13 @@ func (self *MessageMiddleware) createReadWorkerQueue(config *QueueConfig) (chan 
 		if err != nil {
 			return nil, Err.Ctx("Couldn't bind queue to exchange", err)
 		}
+		queueOrigin = config.Name
 	}
 
+	err = self.notifyNewReadQueueToAdmin(queueOrigin)
+	if err != nil {
+		return nil, fmt.Errorf("Error notifyng new read queue to admin: %v", err)
+	}
 	//We invoke a new worker, which will listen for new messages on the queue
 	go readWorker(amqpChann, channel)
 
@@ -200,18 +212,18 @@ func readWorker(input <-chan amqp.Delivery, output chan Message) {
 	for msg := range input {
 		messages := decodeStringSlice(msg.Body)
 		if messages[0] == "finish" {
-			err := msg.Nack(false, true)
-			if err != nil {
-				log.Debugf("Error making Nack of message")
-			}
+			// err := msg.Nack(false, true)
+			// if err != nil {
+			// 	log.Debugf("Error making Nack of message")
+			// }
 			log.Debugf("Reader has found finish message, closing...")
 			close(output)
 			return
 		}
-		err := msg.Ack(false)
-		if err != nil {
-			log.Errorf("Failed to ack message")
-		}
+		// err := msg.Ack(false)
+		// if err != nil {
+		// 	log.Errorf("Failed to ack message")
+		// }
 		for _, m := range messages {
 			output <- Message{
 				Body:  m,
@@ -420,7 +432,7 @@ func (self *MessageMiddleware) consumeQueue(name string) (<-chan amqp.Delivery, 
 	return self.channel.Consume(
 		name,  // queue
 		"",    // consumer
-		false, // auto-ack
+		true,  // auto-ack
 		false, // exclusive
 		false, // no-local
 		false, // no-wait
@@ -443,6 +455,23 @@ func (self *MessageMiddleware) notifyNewWriteQueueToAdmin(config *QueueConfig) e
 		config.Topic,
 		config.Source,
 		config.Direction)
+
+	err := publish([]string{message}, "", targetQueue, self.channel)
+
+	return err
+}
+
+func (self *MessageMiddleware) notifyNewReadQueueToAdmin(queueOrigin string) error {
+
+	//TODO: Cambiar el nombre de la variable a algo que tenga más sentido
+	//Lo que estamos haciendo acá es no enviar el mensaje si se trata del admin
+
+	if !self.config.NotifyOnFinish {
+		return nil
+	}
+
+	targetQueue := "admin_control"
+	message := fmt.Sprintf("new_read,%v", queueOrigin)
 
 	err := publish([]string{message}, "", targetQueue, self.channel)
 
