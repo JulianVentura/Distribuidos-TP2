@@ -11,7 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	mom "distribuidos/tp2/server/common/message_middleware/message_middleware"
+	mom "distribuidos/tp2/server/common/message_middleware"
+	momCli "distribuidos/tp2/server/common/message_middleware/client"
 	"distribuidos/tp2/server/common/utils"
 
 	json "github.com/buger/jsonparser"
@@ -175,7 +176,7 @@ func parseQueuesConfig(data []byte, queues []string) (map[string]mom.QueueConfig
 	return result, nil
 }
 
-func initQueues(msgMiddleware *mom.MessageMiddleware, config map[string]mom.QueueConfig) (map[string]chan mom.Message, error) {
+func initQueues(msgMiddleware *momCli.MessageMiddleware, config map[string]mom.QueueConfig) (map[string]chan mom.Message, error) {
 
 	queues := make(map[string](chan mom.Message))
 
@@ -206,7 +207,7 @@ type Worker struct {
 	Config map[string]string
 	Queues map[string]chan mom.Message
 	Quit   chan bool
-	Mom    *mom.MessageMiddleware
+	Mom    *momCli.MessageMiddleware
 }
 
 type InitConfig struct {
@@ -274,15 +275,15 @@ func StartWorker(config WorkerConfig) (Worker, error) {
 	printConfig(&cfg)
 
 	// - Mom initialization
-	mConfig := mom.MessageMiddlewareConfig{
+	mConfig := momCli.MessageMiddlewareConfig{
 		Address:                cfg.Envs["mom_address"],
-		NotifyOnFinish:         true,
+		NotifyAdmin:            true,
 		ChannelBufferSize:      uint(mom_chann_buff_size),
 		MessageBatchSizeTarget: uint(mom_batch_size),
 		MessageBatchTimeout:    mom_timeout,
 	}
 
-	messageMiddleware, err := mom.Start(mConfig)
+	messageMiddleware, err := momCli.Start(mConfig)
 	if err != nil {
 		return Worker{}, fmt.Errorf("Couldn't start mom: %v", err)
 	}

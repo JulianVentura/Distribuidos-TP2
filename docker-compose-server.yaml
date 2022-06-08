@@ -20,7 +20,7 @@ services:
   mom-admin:
     build:
       context: ./
-      dockerfile: ./server/common/message_middleware/Dockerfile
+      dockerfile: ./server/mom_admin/Dockerfile
     container_name: mom-admin
     entrypoint: /admin
     restart: on-failure

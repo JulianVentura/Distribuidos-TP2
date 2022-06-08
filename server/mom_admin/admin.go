@@ -1,7 +1,8 @@
 package main
 
 import (
-	mom "distribuidos/tp2/server/common/message_middleware/message_middleware"
+	mom "distribuidos/tp2/server/common/message_middleware"
+	momCli "distribuidos/tp2/server/common/message_middleware/client"
 	"fmt"
 	"strings"
 
@@ -9,7 +10,7 @@ import (
 )
 
 type MiddlewareAdmin struct {
-	mom     *mom.MessageMiddleware
+	mom     *momCli.MessageMiddleware
 	control chan mom.Message
 	table   ControlTable
 	quit    chan bool
@@ -20,12 +21,12 @@ func StartAdmin(
 	quit chan bool,
 ) (*MiddlewareAdmin, error) {
 
-	momConfig := mom.MessageMiddlewareConfig{
-		Address:        momAddress,
-		NotifyOnFinish: false,
+	momConfig := momCli.MessageMiddlewareConfig{
+		Address:     momAddress,
+		NotifyAdmin: false,
 	}
 
-	msgMiddleware, err := mom.Start(momConfig)
+	msgMiddleware, err := momCli.Start(momConfig)
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't connect to mom: %v", err)
 	}

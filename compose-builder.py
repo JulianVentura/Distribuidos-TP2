@@ -67,7 +67,7 @@ class Writer:
         self.write(level, "mom-admin:")
         self.write(level+1, "build:")
         self.write(level+2, "context: ./")
-        self.write(level+2, "dockerfile: ./server/common/message_middleware/Dockerfile")
+        self.write(level+2, "dockerfile: ./server/mom_admin/Dockerfile")
         self.write(level+1, "container_name: mom-admin")
         self.write(level+1, "entrypoint: /admin")
         self.write(level+1, "restart: on-failure")

@@ -2,7 +2,7 @@ package main
 
 import (
 	"distribuidos/tp2/server/admin/src/admin"
-	mom "distribuidos/tp2/server/common/message_middleware/message_middleware"
+	mom "distribuidos/tp2/server/common/message_middleware"
 	"distribuidos/tp2/server/common/worker"
 	"fmt"
 

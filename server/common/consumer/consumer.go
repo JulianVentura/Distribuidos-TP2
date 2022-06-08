@@ -1,7 +1,7 @@
 package consumer
 
 import (
-	mom "distribuidos/tp2/server/common/message_middleware/message_middleware"
+	mom "distribuidos/tp2/server/common/message_middleware"
 )
 
 type ConsumerQueues struct {

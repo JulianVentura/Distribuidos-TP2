@@ -4,7 +4,7 @@ import (
 	Err "distribuidos/tp2/common/errors"
 	"distribuidos/tp2/common/protocol"
 	"distribuidos/tp2/common/socket"
-	mom "distribuidos/tp2/server/common/message_middleware/message_middleware"
+	mom "distribuidos/tp2/server/common/message_middleware"
 	"fmt"
 	"strconv"
 	"sync"

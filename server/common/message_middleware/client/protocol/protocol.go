@@ -1,4 +1,4 @@
-package message_middleware
+package protocol
 
 import "encoding/binary"
 
@@ -27,7 +27,7 @@ func decodeString(encoded []byte) (string, uint32) {
 	return str, strLen + n
 }
 
-func encodeStringSlice(slice []string) []byte {
+func EncodeStringSlice(slice []string) []byte {
 	l := uint32(len(slice))
 	sz := 0
 	for _, str := range slice {
@@ -42,7 +42,7 @@ func encodeStringSlice(slice []string) []byte {
 	return encodedStrings
 }
 
-func decodeStringSlice(encoded []byte) []string {
+func DecodeStringSlice(encoded []byte) []string {
 	len, start := decode32(encoded)
 	slice := make([]string, len)
 

@@ -1,0 +1,59 @@
+package read_queue
+
+import (
+	mom "distribuidos/tp2/server/common/message_middleware"
+	"fmt"
+
+	"github.com/streadway/amqp"
+)
+
+type ReadFanoutQueue struct {
+	channel  *amqp.Channel
+	delivery <-chan amqp.Delivery
+	config   *mom.QueueConfig
+}
+
+func NewReadFanoutQueue(
+	config *mom.QueueConfig,
+	channel *amqp.Channel,
+) (*ReadFanoutQueue, error) {
+
+	self := &ReadFanoutQueue{
+		config:  config,
+		channel: channel,
+	}
+
+	err := self.createQueue()
+	if err != nil {
+		return self, err
+	}
+
+	return self, nil
+}
+
+func (self *ReadFanoutQueue) Read() <-chan amqp.Delivery {
+	return self.delivery
+}
+
+func (self *ReadFanoutQueue) Close() {
+	self.channel.Close()
+}
+
+func (self *ReadFanoutQueue) createQueue() error {
+	if self.config.Source == "" {
+		return fmt.Errorf("Error trying to create a read fanout queue: source not provided")
+	}
+	amqpChann, err := initializeQueueAndExchange(
+		self.channel,
+		self.config.Source,
+		"fanout",
+		self.config.Name,
+		"")
+	if err != nil {
+		return fmt.Errorf("Error trying to create a read fanout queue %v: %v", self.config.Source, err)
+	}
+
+	self.delivery = amqpChann
+
+	return nil
+}

@@ -14,8 +14,9 @@ COPY ./go.mod ./go.sum ./
 COPY ./vendor ./vendor/
 COPY ./common ./common/
 COPY ./server/common ./server/common/
+COPY ./server/mom_admin ./server/mom_admin
 # CGO_ENABLED must be disabled to run go binary in Alpine
-RUN CGO_ENABLED=0 GOOS=linux go build -o ./bin/admin ./server/common/message_middleware
+RUN CGO_ENABLED=0 GOOS=linux go build -o ./bin/admin ./server/mom_admin
 
 FROM busybox:latest
 COPY --from=builder /build/bin/admin /admin
