@@ -163,8 +163,8 @@ func (self *Admin) receiveStreamFromClient(client *socket.TCPConnection) error {
 	postStreamFinished := false
 	commentStreamFinished := false
 
-	postsReceived := 0
-	commentsReceived := 0
+	postsReceived := uint(0)
+	commentsReceived := uint(0)
 Loop:
 	for {
 		select {
@@ -182,16 +182,10 @@ Loop:
 			switch m := message.(type) {
 			case *protocol.Post:
 				self.queues.Posts <- mom.Message{Body: m.Post}
-				postsReceived += 1
-				if postsReceived%10000 == 0 {
-					log.Infof("Se recibieron %v posts", postsReceived)
-				}
+				newArrival(&postsReceived, "posts")
 			case *protocol.Comment:
 				log.Debugf("Received comment: %v", m.Comment)
-				commentsReceived += 1
-				if commentsReceived%10000 == 0 {
-					log.Infof("Se recibieron %v comments", commentsReceived)
-				}
+				newArrival(&commentsReceived, "comments")
 				self.queues.Comments <- mom.Message{Body: m.Comment}
 			case *protocol.PostFinished:
 				log.Infof("Client poststream has finished")
@@ -201,6 +195,14 @@ Loop:
 				log.Infof("Client comment stream has finished")
 				close(self.queues.Comments)
 				commentStreamFinished = true
+			case *protocol.Error:
+				if !commentStreamFinished {
+					close(self.queues.Comments)
+				}
+				if !postStreamFinished {
+					close(self.queues.Posts)
+				}
+				return fmt.Errorf("Received error from client")
 			}
 
 			if commentStreamFinished && postStreamFinished {
@@ -212,4 +214,11 @@ Loop:
 	log.Infof("Client stream has finished")
 
 	return nil
+}
+
+func newArrival(count *uint, name string) {
+	*count += 1
+	if *count%10000 == 0 {
+		log.Infof("Se recibieron %v %v", *count, name)
+	}
 }

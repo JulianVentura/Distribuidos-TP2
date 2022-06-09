@@ -34,118 +34,152 @@ type Client struct {
 	commentsSent   uint
 	toSend         chan protocol.Encodable
 	serverResponse chan protocol.Encodable
-	finished       sync.WaitGroup
-	quit           chan bool
-	hasFinished    chan bool
+	finished       *sync.WaitGroup
+	quitControl    []chan bool
 }
 
 func Start(config ClientConfig) (*Client, error) {
 	server, err := socket.NewClient(config.ServerAddress)
-	// var err error = nil
 	if err != nil {
 		msg := fmt.Sprintf("Connection with server on address %v failed", config.ServerAddress)
 		return nil, Err.Ctx(msg, err)
 	}
 
 	log.Infof("Connection with server established")
-	client := &Client{
+	self := &Client{
 		server:         server,
 		config:         config,
 		postsSent:      0,
 		commentsSent:   0,
-		toSend:         make(chan protocol.Encodable, 100000),
+		toSend:         make(chan protocol.Encodable, 100),
 		serverResponse: make(chan protocol.Encodable, 2),
-		quit:           make(chan bool, 2),
-		hasFinished:    make(chan bool, 2),
-		finished:       sync.WaitGroup{},
+		quitControl:    make([]chan bool, 0, 10),
+		finished:       &sync.WaitGroup{},
 	}
 
-	postChann := make(chan string, 10000)
-	commentChann := make(chan string, 10000)
+	err = self.startReaders(&config)
+	if err != nil {
+		server.Close()
+		return nil, err
+	}
 
-	err = readFromFile(
+	receiveQuit := self.newQuit()
+	self.finished.Add(1)
+	go self.receiveFromServer(receiveQuit)
+
+	runQuit := self.newQuit()
+	self.finished.Add(1)
+	go self.run(runQuit)
+
+	return self, nil
+}
+
+func (self *Client) startReaders(config *ClientConfig) error {
+	postChann := make(chan string, 100)
+	commentChann := make(chan string, 100)
+	postQuit := self.newQuit()
+	err := readFromFile(
 		config.FilePathPost,
 		config.LoopPeriodPost,
 		postChann,
-		client.quit,
+		postQuit,
+		self.finished,
 	)
 	if err != nil {
-		client.quit <- true
-		return nil, err
+		self.finish()
+		return err
 	}
+	commentQuit := self.newQuit()
 	err = readFromFile(
 		config.FilePathComment,
 		config.LoopPeriodComment,
 		commentChann,
-		client.quit,
+		commentQuit,
+		self.finished,
 	)
 	if err != nil {
-		client.quit <- true //We close previous thread
-		return nil, err
+		self.finish()
+		return err
 	}
+
+	streamFinished := &sync.WaitGroup{}
+	streamFinished.Add(2)
+	go func() {
+		streamFinished.Wait()
+		close(self.toSend)
+	}()
 
 	go func() {
 		for m := range postChann {
 			log.Debugf("Sending post %s", m)
-			client.postsSent += 1
-			if client.postsSent%10000 == 0 {
-				log.Infof("Se enviaron %v posts", client.postsSent)
+			self.postsSent += 1
+			if self.postsSent%10000 == 0 {
+				log.Infof("Se enviaron %v posts", self.postsSent)
 			}
-			client.toSend <- &protocol.Post{
+			self.toSend <- &protocol.Post{
 				Post: m,
 			}
 		}
-		log.Infof("Posts finished")
-		client.toSend <- &protocol.PostFinished{}
-		client.finished.Done()
+		self.toSend <- &protocol.PostFinished{}
+		streamFinished.Done()
 	}()
 
 	go func() {
 		for m := range commentChann {
 			log.Debugf("Sending comment %s", m)
-			client.commentsSent += 1
-			if client.commentsSent%10000 == 0 {
-				log.Infof("Se enviaron %v comments", client.commentsSent)
+			self.commentsSent += 1
+			if self.commentsSent%10000 == 0 {
+				log.Infof("Se enviaron %v comments", self.commentsSent)
 			}
-			client.toSend <- &protocol.Comment{
+			self.toSend <- &protocol.Comment{
 				Comment: m,
 			}
 		}
-		log.Infof("Comments finished")
-		client.toSend <- &protocol.CommentFinished{}
-		client.finished.Done()
+		self.toSend <- &protocol.CommentFinished{}
+		streamFinished.Done()
 	}()
 
-	client.finished.Add(2)
+	return nil
+}
 
-	go func() {
-		client.finished.Wait()
-		close(client.toSend)
-	}()
+func (self *Client) newQuit() chan bool {
+	quit := make(chan bool, 1000)
+	self.quitControl = append(self.quitControl, quit)
+	return quit
+}
 
-	go client.receiveFromServer()
-	go client.run()
-
-	return client, nil
+func (self *Client) finish() {
+	for _, quit := range self.quitControl {
+		quit <- true
+	}
 }
 
 func (self *Client) Finish() {
-	self.quit <- true
+	self.finish()
 	self.finished.Wait()
-	<-self.hasFinished
 }
 
-func (self *Client) run() {
+func (self *Client) run(quit chan bool) {
+	streamFinished := false
 	defer func() {
+		if !streamFinished {
+			protocol.Send(self.server, &protocol.Error{})
+		}
 		self.server.Close()
-		self.hasFinished <- true
+		self.finished.Done()
+		self.finish()
+		//Clean queue to prevent deadlock
+		for range self.toSend {
+		}
+		self.finished.Wait()
 	}()
 Loop:
 	for {
 		select {
 		case m, more := <-self.toSend:
 			if !more {
-				self.waitForServerResponse()
+				streamFinished = true
+				self.waitForServerResponse(quit)
 				break Loop
 			}
 			err := protocol.Send(self.server, m)
@@ -155,22 +189,20 @@ Loop:
 			}
 		case m := <-self.serverResponse:
 			should_finish := self.parseServerResponse(m)
-			if should_finish { //TODO: Handle this
+			if should_finish {
 				break Loop
 			}
-		case <-self.quit:
-			self.quit <- true
+		case <-quit:
 			break Loop
 		}
 	}
 }
 
-func (self *Client) waitForServerResponse() {
+func (self *Client) waitForServerResponse(quit chan bool) {
 	select {
 	case m := <-self.serverResponse:
 		self.parseServerResponse(m)
-	case <-self.quit:
-		self.quit <- true
+	case <-quit:
 	}
 }
 
@@ -178,17 +210,19 @@ func readFromFile(
 	path string,
 	sleepTime time.Duration,
 	output chan string,
-	quit chan bool) error {
+	quit chan bool,
+	finished *sync.WaitGroup) error {
 
 	f, err := os.Open(path)
 	if err != nil {
 		return Err.Ctx("Error opening file", err)
 	}
-
+	finished.Add(1)
 	go func() {
 		defer func() {
 			f.Close()
 			close(output)
+			finished.Done()
 		}()
 		sep := rune(0x1f)
 		reader := csv.NewReader(f)
@@ -199,7 +233,6 @@ func readFromFile(
 		for {
 			select {
 			case <-quit:
-				quit <- true //Propagate the signal
 				break Loop
 			default:
 				records, err := reader.Read()
@@ -220,16 +253,16 @@ func readFromFile(
 	return nil
 }
 
-func (self *Client) receiveFromServer() {
-
+func (self *Client) receiveFromServer(quit chan bool) {
+	defer self.finished.Done()
 	select {
-	case <-self.quit:
-		self.quit <- true
+	case <-quit:
 		return
 	default:
 		response, err := protocol.Receive(self.server)
 		if err != nil {
 			log.Error(Err.Ctx("Error receiving response from server", err))
+			self.finish()
 			return
 		}
 		self.serverResponse <- response
