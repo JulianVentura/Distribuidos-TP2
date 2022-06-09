@@ -54,7 +54,9 @@ func workerCallback(envs map[string]string, queues map[string]chan mom.Message, 
 		log.Errorf("%v", err)
 		return
 	}
-	baseConsumer.Run()
+	if !baseConsumer.Run() {
+		return
+	}
 
 	// - Create and run the consumer for the join input
 	callback := worker.CreateCallback(joiner.Join, queues["result"])

@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type TableEntry struct {
@@ -76,4 +78,15 @@ func (self *ControlTable) DecreaseWriter(name string) error {
 	self.table[name] = entry
 
 	return nil
+}
+
+func (self *ControlTable) AnyPendingFinish() bool {
+	for k, v := range self.table {
+		if v.writers > 0 {
+			log.Infof("Queue %v hasn't finished yet", k)
+			return true
+		}
+	}
+
+	return false
 }

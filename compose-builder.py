@@ -74,6 +74,8 @@ class Writer:
         self.write(level+1, "depends_on:")
         self.write(level+2, "rabbitmq:")
         self.write(level+3, "condition: service_healthy")
+        self.write(level+1, "volumes:")
+        self.write(level+2, "- ./config.json:/config.json")
         self.write(level+1, "links:")
         self.write(level+2, "- rabbitmq")
         self.write(level+1, "networks:")
@@ -124,15 +126,15 @@ def main():
     worker_number = {
         "admin": 1,
         "post-score-adder": 1,
-        "post-digestor": 2,
+        "post-digestor": 1,
         "post-score-avg-calculator": 1,
-        "post-above-avg-filter": 2,
+        "post-above-avg-filter": 1,
         "best-sentiment-avg-downloader": 1,
-        "sentiment-joiner": 2,
-        "student-joiner": 2,
-        "comment-digestor": 2,
-        "post-sentiment-avg-calculator": 2,
-        "student-comment-filter": 2,
+        "sentiment-joiner": 1,
+        "student-joiner": 1,
+        "comment-digestor": 1,
+        "post-sentiment-avg-calculator": 1,
+        "student-comment-filter": 1,
     }
 
     config = {

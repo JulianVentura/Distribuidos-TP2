@@ -4,8 +4,6 @@ import (
 	"distribuidos/tp2/server/common/utils"
 	"fmt"
 	"strconv"
-
-	log "github.com/sirupsen/logrus"
 )
 
 type PostAboveAvgFilter struct {
@@ -21,7 +19,6 @@ func NewFilter(avg float64) PostAboveAvgFilter {
 }
 
 func (self *PostAboveAvgFilter) work(input string) (string, error) {
-	log.Debugf("Received: %v", input)
 
 	split := self.Parser.Read(input)
 	if len(split) != 3 {

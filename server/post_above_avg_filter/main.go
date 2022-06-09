@@ -18,8 +18,11 @@ func workerCallback(envs map[string]string, queues map[string]chan mom.Message, 
 		return
 	}
 	//- Wait for avg result
-	avgResult := <-queues["input_avg"]
-	log.Debugf("AVG: %v", avgResult.Body)
+	avgResult, valid := <-queues["input_avg"]
+	if !valid {
+		//Close received
+		return
+	}
 
 	avg, err := strconv.ParseFloat(avgResult.Body, 64)
 	if err != nil {

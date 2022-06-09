@@ -45,6 +45,9 @@ func (self *BestSentimentAvgDownloader) work(input string) {
 }
 
 func (self *BestSentimentAvgDownloader) getResult() string {
+	if self.Best == "" {
+		return ""
+	}
 	resp, err := http.Get(self.Best)
 	if err != nil {
 		log.Errorf("Error getting meme of url %v: %v", self.Best, err)

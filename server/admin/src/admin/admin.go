@@ -87,7 +87,7 @@ func (self *Admin) clientWorker() {
 	defer client.Close()
 
 	//Recibir el stream de datos
-	err = self.receiveStreamFromClient(client) //Problema: Si enviamos quit y no hay datos, nos bloqueamos
+	err = self.receiveStreamFromClient(client)
 	if err != nil {
 		self.sendError(client)
 		log.Errorf("Error receiving stream from client: %v", err)
@@ -134,6 +134,12 @@ func (self *Admin) sendResultsToClient(client *socket.TCPConnection) error {
 		schoolMemes = append(schoolMemes, memeUrl.Body)
 	}
 	log.Infof("Best School Memes finished")
+
+	select { //Check if should finish
+	case <-self.quit:
+		return fmt.Errorf("Forcefull quit signal has been detected")
+	default:
+	}
 
 	avg, err := strconv.ParseFloat(avgMsg.Body, 64)
 	if err != nil {

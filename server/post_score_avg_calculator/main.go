@@ -21,10 +21,11 @@ func workerCallback(envs map[string]string, queues map[string]chan mom.Message, 
 		log.Errorf("%v", err)
 		return
 	}
-	consumer.Run()
+	if !consumer.Run() {
+		return
+	}
 
 	result := calculator.getResult()
-	log.Infof("AVG: %v", result)
 
 	//- Send the result into result queue
 	queues["result"] <- mom.Message{

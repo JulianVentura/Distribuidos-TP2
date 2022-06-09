@@ -40,14 +40,13 @@ func (self *Consumer) finish() {
 	self.hasFinished <- true
 }
 
-func (self *Consumer) Run() {
+func (self *Consumer) Run() bool {
 	defer self.finish()
-
 Loop:
 	for {
 		select {
 		case <-self.quit:
-			break Loop
+			return false
 		case m, open := <-self.queues.Input:
 			if !open {
 				break Loop
@@ -55,4 +54,6 @@ Loop:
 			self.onMsgCallback(m.Body)
 		}
 	}
+
+	return true
 }

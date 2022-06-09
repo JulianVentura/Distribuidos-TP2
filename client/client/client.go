@@ -155,7 +155,7 @@ Loop:
 			}
 		case m := <-self.serverResponse:
 			should_finish := self.parseServerResponse(m)
-			if should_finish {
+			if should_finish { //TODO: Handle this
 				break Loop
 			}
 		case <-self.quit:
@@ -253,16 +253,33 @@ func (self *Client) processServerResponse(response *protocol.Response) {
 	log.Infof("Calculation Results: ")
 	log.Infof(" - Post Score AVG: %v", response.PostScoreAvg)
 	log.Infof(" - Best AVG Sentiment Meme downloaded to %v", self.config.FilePathSentimentMeme)
-	log.Infof(" - School Memes written to %v", self.config.FilePathSchoolMemes)
 
-	//Save memes
-	err := save(response.BestSentimentMeme, self.config.FilePathSentimentMeme)
-	if err != nil {
-		log.Errorf("Couldn't save meme: %v", err)
+	if len(response.SchoolMemes) > 0 {
+		log.Infof(" - School Memes written to %v", self.config.FilePathSchoolMemes)
+		saveSchoolMemes(response.SchoolMemes, self.config.FilePathSchoolMemes)
+	} else {
+		log.Infof(" - School Memes weren't found")
 	}
-	err = save([]byte(strings.Join(response.SchoolMemes, "\n")), self.config.FilePathSchoolMemes)
+
+	if len(response.BestSentimentMeme) > 0 {
+		log.Infof(" - Best Sentiment Meme written to %v", self.config.FilePathSentimentMeme)
+		saveSentimentMeme(response.BestSentimentMeme, self.config.FilePathSentimentMeme)
+	} else {
+		log.Infof(" - Best Sentiment Meme wasn't found")
+	}
+}
+
+func saveSchoolMemes(memes []string, path string) {
+	err := save([]byte(strings.Join(memes, "\n")), path)
 	if err != nil {
 		log.Errorf("Couldn't write school memes: %v", err)
+	}
+}
+
+func saveSentimentMeme(meme []byte, path string) {
+	err := save(meme, path)
+	if err != nil {
+		log.Errorf("Couldn't save meme: %v", err)
 	}
 }
 

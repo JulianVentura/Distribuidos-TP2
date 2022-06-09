@@ -4,11 +4,8 @@ import (
 	"fmt"
 	"hash/fnv"
 	"io/ioutil"
-	"os"
-	"os/signal"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	mom "distribuidos/tp2/server/common/message_middleware"
@@ -104,19 +101,6 @@ func hash(s string) uint32 {
 	h := fnv.New32a()
 	h.Write([]byte(s))
 	return h.Sum32()
-}
-
-func StartQuitSignal() chan bool {
-
-	exit := make(chan os.Signal, 1)
-	quit := make(chan bool, 1)
-	signal.Notify(exit, syscall.SIGTERM)
-	go func() {
-		<-exit
-		quit <- true
-	}()
-
-	return quit
 }
 
 func parseQueueConfig(data []byte) (mom.QueueConfig, error) {
@@ -240,7 +224,7 @@ func StartWorker(config WorkerConfig) (Worker, error) {
 	addIfNotExists(&config.Envs, "mom_msg_batch_timeout")
 	addIfNotExists(&config.Envs, "mom_channel_buffer_size")
 	// - Definir señal de quit
-	quit := StartQuitSignal()
+	quit := utils.StartQuitSignal()
 	// - Config parse
 	cfg, err := initConfig(&config)
 	if err != nil {
@@ -319,7 +303,6 @@ func initConfig(config *WorkerConfig) (InitConfig, error) {
 	v := viper.New()
 
 	v.AutomaticEnv()
-	// v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	// Add env variables supported
 	for _, env := range config.Envs {
 		v.BindEnv(strings.Split(env, "_")...)

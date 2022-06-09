@@ -2,6 +2,9 @@
     "general": {
         "mom_address": "amqp://rabbitmq"
     },
+    "mom_admin": {
+        "log_level": "info"
+    },
     "admin": {
         "process_name": "Admin",
         "log_level": "info",
@@ -103,7 +106,7 @@
     },
     "post_above_avg_filter": {
         "process_name": "Post Above Avg Filter",
-        "log_level": "info",
+        "log_level": "debug",
         "mom_msg_batch_timeout": "10ms",
         "mom_msg_batch_target_size": 1000000,
         "mom_channel_buffer_size": 1000,

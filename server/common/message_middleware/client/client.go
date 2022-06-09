@@ -10,6 +10,7 @@ import (
 	workers "distribuidos/tp2/server/common/message_middleware/client/workers"
 	wq "distribuidos/tp2/server/common/message_middleware/client/write_queue"
 
+	"github.com/sirupsen/logrus"
 	amqp "github.com/streadway/amqp"
 )
 
@@ -65,15 +66,17 @@ func (self *MessageMiddleware) newChannel() (*amqp.Channel, error) {
 }
 
 func (self *MessageMiddleware) Finish() error {
-
+	logrus.Debugf("Closing readers")
 	for _, reader := range self.readers {
 		reader.Finish()
 	}
 
+	logrus.Debugf("Closing writers")
 	for _, writer := range self.writers {
 		writer.Finish()
 	}
 
+	logrus.Debugf("Closing connection")
 	self.connection.Close()
 
 	return nil

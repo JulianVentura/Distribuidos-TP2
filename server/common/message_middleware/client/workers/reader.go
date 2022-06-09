@@ -13,7 +13,7 @@ type ReadWorker struct {
 	queue    read_queue.ReadQueue
 	output   chan mom.Message
 	quit     chan bool
-	finished sync.WaitGroup
+	finished *sync.WaitGroup
 }
 
 func StartReadWorker(
@@ -21,23 +21,25 @@ func StartReadWorker(
 	output chan mom.Message,
 ) *ReadWorker {
 	self := &ReadWorker{
-		queue:  queue,
-		output: output,
-		quit:   make(chan bool, 2),
+		queue:    queue,
+		output:   output,
+		quit:     make(chan bool, 2),
+		finished: &sync.WaitGroup{},
 	}
 
 	self.finished.Add(1)
 	go self.work()
-
 	return self
 }
 
 func (self *ReadWorker) work() {
 	input := self.queue.Read()
-
 Loop:
 	for {
 		select {
+		case <-self.quit:
+			break Loop
+
 		case msg, more := <-input:
 			if !more {
 				break Loop
@@ -46,7 +48,6 @@ Loop:
 			for _, m := range batch {
 				if m == "finish" {
 					log.Debugf("Reader has found finish message, closing...")
-					close(self.output)
 					break Loop
 				}
 				self.output <- mom.Message{
@@ -54,16 +55,19 @@ Loop:
 					Topic: msg.RoutingKey,
 				}
 			}
-		case <-self.quit:
-			break Loop
 		}
 	}
 
+	close(self.output)
 	self.queue.Close()
 	self.finished.Done()
 }
 
 func (self *ReadWorker) Finish() {
+	//Forcefull quit
 	self.quit <- true
+	//Clean output buffer in order to prevent deadlock
+	for range self.output {
+	}
 	self.finished.Wait()
 }

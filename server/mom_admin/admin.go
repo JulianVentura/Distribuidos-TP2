@@ -56,6 +56,7 @@ Loop:
 	for {
 		select {
 		case <-self.quit:
+			self.waitForQueuesToFinish()
 			break Loop
 		case m := <-self.control:
 			params := strings.SplitN(m.Body, ",", 2)
@@ -76,9 +77,34 @@ Loop:
 	log.Infof("Middleware Admin has finished")
 }
 
+func (self *MiddlewareAdmin) waitForQueuesToFinish() {
+
+Loop:
+	for {
+		if !self.table.AnyPendingFinish() {
+			break Loop
+		}
+
+		select {
+		case m := <-self.control:
+			params := strings.SplitN(m.Body, ",", 2)
+			switch params[0] {
+			case "new_write":
+				self.handleNewWriteQueue(params[1])
+			case "new_read":
+				self.handleNewReadQueue(params[1])
+			case "finish":
+				self.handleNewQueueFinish(params[1])
+			default:
+				log.Errorf("Received invalid message. Topic: %v, Body: %v", m.Topic, m.Body)
+			}
+		}
+	}
+}
+
 func (self *MiddlewareAdmin) handleNewWriteQueue(config string) {
 	log.Debugf("New Queue Writer: %v", config)
-	//Parsear
+	//Parse the message
 	params := strings.Split(config, ",")
 	if len(params) != 5 {
 		log.Errorf("Received new queue with invalid params: %v", config)
@@ -91,16 +117,21 @@ func (self *MiddlewareAdmin) handleNewWriteQueue(config string) {
 		Source:    params[3],
 		Direction: params[4],
 	}
-	//Declarar la cola con el middleware
+	//Declare the new queue
 	queue, err := self.mom.WriteQueue(qConfig)
 	if err != nil {
 		log.Errorf("Couldn't initialize queue with config %v: %v", config, err)
 		return
 	}
-	//Introducir en table, con el callback
+	//Introduce the new queue into the table, with the finish callback
 	self.table.AddNewWriter(qConfig.Name, func(readerCount uint) {
 		log.Debugf("Callback of %v has been called for %v readers", qConfig.Name, readerCount)
-		for i := uint(0); i < readerCount; i++ {
+		//At least one message will be sent
+		queue <- mom.Message{
+			Topic: "finish",
+			Body:  "finish",
+		}
+		for i := uint(1); i < readerCount; i++ {
 			queue <- mom.Message{
 				Topic: "finish",
 				Body:  "finish",
