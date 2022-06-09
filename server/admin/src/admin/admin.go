@@ -131,7 +131,7 @@ func (self *Admin) sendResultsToClient(client *socket.TCPConnection) error {
 	log.Infof("Best Sentiment Meme finished")
 	schoolMemes := make([]string, 0, 100)
 	for memeUrl := range self.queues.SchoolMemes {
-		schoolMemes = append(schoolMemes, memeUrl.Body)
+		schoolMemes = append(schoolMemes, string(memeUrl.Body))
 	}
 	log.Infof("Best School Memes finished")
 
@@ -141,7 +141,7 @@ func (self *Admin) sendResultsToClient(client *socket.TCPConnection) error {
 	default:
 	}
 
-	avg, err := strconv.ParseFloat(avgMsg.Body, 64)
+	avg, err := strconv.ParseFloat(string(avgMsg.Body), 64)
 	if err != nil {
 		return fmt.Errorf("Critical error, couldn't parse average result")
 	}
@@ -150,7 +150,7 @@ func (self *Admin) sendResultsToClient(client *socket.TCPConnection) error {
 	//Send results to client
 	protocol.Send(client, &protocol.Response{
 		PostScoreAvg:      avg,
-		BestSentimentMeme: []byte(bestMemeMsg.Body),
+		BestSentimentMeme: bestMemeMsg.Body,
 		SchoolMemes:       schoolMemes,
 	})
 
@@ -181,12 +181,12 @@ Loop:
 			}
 			switch m := message.(type) {
 			case *protocol.Post:
-				self.queues.Posts <- mom.Message{Body: m.Post}
+				self.queues.Posts <- mom.Message{Body: []byte(m.Post)}
 				newArrival(&postsReceived, "posts")
 			case *protocol.Comment:
 				log.Debugf("Received comment: %v", m.Comment)
 				newArrival(&commentsReceived, "comments")
-				self.queues.Comments <- mom.Message{Body: m.Comment}
+				self.queues.Comments <- mom.Message{Body: []byte(m.Comment)}
 			case *protocol.PostFinished:
 				log.Infof("Client poststream has finished")
 				close(self.queues.Posts)

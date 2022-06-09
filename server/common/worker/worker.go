@@ -75,7 +75,7 @@ func CreateCallback(
 		result, err := callback(msg)
 		if err == nil {
 			resultQueue <- mom.Message{
-				Body: result,
+				Body: []byte(result),
 			}
 		}
 	}
@@ -92,7 +92,7 @@ func BalanceLoadSend(
 	target := hash(id) % uint32(processNumber)
 
 	output <- mom.Message{
-		Body:  message,
+		Body:  []byte(message),
 		Topic: fmt.Sprintf("%s.%v", topicHeader, target),
 	}
 }

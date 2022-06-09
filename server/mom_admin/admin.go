@@ -59,7 +59,7 @@ Loop:
 			self.waitForQueuesToFinish()
 			break Loop
 		case m := <-self.control:
-			params := strings.SplitN(m.Body, ",", 2)
+			params := strings.SplitN(string(m.Body), ",", 2)
 			switch params[0] {
 			case "new_write":
 				self.handleNewWriteQueue(params[1])
@@ -87,7 +87,7 @@ Loop:
 
 		select {
 		case m := <-self.control:
-			params := strings.SplitN(m.Body, ",", 2)
+			params := strings.SplitN(string(m.Body), ",", 2)
 			switch params[0] {
 			case "new_write":
 				self.handleNewWriteQueue(params[1])
@@ -129,12 +129,12 @@ func (self *MiddlewareAdmin) handleNewWriteQueue(config string) {
 		//At least one message will be sent
 		queue <- mom.Message{
 			Topic: "finish",
-			Body:  "finish",
+			Body:  []byte("finish"),
 		}
 		for i := uint(1); i < readerCount; i++ {
 			queue <- mom.Message{
 				Topic: "finish",
-				Body:  "finish",
+				Body:  []byte("finish"),
 			}
 		}
 	})

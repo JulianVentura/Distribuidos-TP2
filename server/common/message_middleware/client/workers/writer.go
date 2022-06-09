@@ -72,7 +72,7 @@ Loop:
 			if !more {
 				break Loop
 			}
-			self.batchTable.addEntry(msg.Topic, msg.Body)
+			self.batchTable.addEntry(msg.Topic, string(msg.Body))
 		case <-self.quit:
 			self.sendLastMessages()
 			break Loop
@@ -90,7 +90,7 @@ Loop:
 	for {
 		select {
 		case msg := <-self.input:
-			self.batchTable.addEntry(msg.Topic, msg.Body)
+			self.batchTable.addEntry(msg.Topic, string(msg.Body))
 		default:
 			break Loop
 		}

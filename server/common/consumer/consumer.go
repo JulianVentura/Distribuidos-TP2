@@ -51,7 +51,7 @@ Loop:
 			if !open {
 				break Loop
 			}
-			self.onMsgCallback(m.Body)
+			self.onMsgCallback(string(m.Body))
 		}
 	}
 

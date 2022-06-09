@@ -51,7 +51,7 @@ Loop:
 					break Loop
 				}
 				self.output <- mom.Message{
-					Body:  m,
+					Body:  []byte(m),
 					Topic: msg.RoutingKey,
 				}
 			}

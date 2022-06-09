@@ -29,7 +29,7 @@ func workerCallback(envs map[string]string, queues map[string]chan mom.Message, 
 
 	//- Send the result into result queue
 	queues["result"] <- mom.Message{
-		Body: result,
+		Body: []byte(result),
 	}
 }
 

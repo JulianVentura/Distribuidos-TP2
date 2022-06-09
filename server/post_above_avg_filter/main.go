@@ -24,9 +24,9 @@ func workerCallback(envs map[string]string, queues map[string]chan mom.Message, 
 		return
 	}
 
-	avg, err := strconv.ParseFloat(avgResult.Body, 64)
+	avg, err := strconv.ParseFloat(string(avgResult.Body), 64)
 	if err != nil {
-		log.Errorf("Post AVG value %v is not a number: %v", avgResult.Body, err)
+		log.Errorf("Post AVG value %v is not a number: %v", string(avgResult.Body), err)
 		return
 	}
 	// - Business structure initialization

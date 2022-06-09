@@ -1,7 +1,7 @@
 package message_middleware
 
 type Message struct {
-	Body  string
+	Body  []byte
 	Topic string
 }
 

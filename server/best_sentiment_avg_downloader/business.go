@@ -44,21 +44,22 @@ func (self *BestSentimentAvgDownloader) work(input string) {
 	}
 }
 
-func (self *BestSentimentAvgDownloader) getResult() string {
+func (self *BestSentimentAvgDownloader) getResult() []byte {
 	if self.Best == "" {
-		return ""
+		return []byte{}
 	}
 	resp, err := http.Get(self.Best)
 	if err != nil {
 		log.Errorf("Error getting meme of url %v: %v", self.Best, err)
-		return ""
+		return []byte{}
 	}
 	defer resp.Body.Close()
 
 	file, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Errorf("Error downloading meme of url %v: %v", self.Best, err)
-		return ""
+		return []byte{}
 	}
-	return string(file) //We can "see" the byte slice as string and vice versa without loosing any information
+
+	return file
 }
