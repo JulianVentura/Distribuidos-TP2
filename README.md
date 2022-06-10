@@ -19,7 +19,7 @@ El mismo fue implementado en Golang, utilizando RabbitMQ como middleware de mens
 
 #### Primeros pasos
 
-Para la ejecución del trabajo será necesaria la instalación de golang versión 1.17+
+Para la ejecución del trabajo será necesaria la instalación de golang versión 1.17+ y python 3.8.10+
 
 Luego, sobre la carpeta raíz del respositorio clonado, deberán instalarse las dependencias del proyecto:
 
@@ -66,7 +66,7 @@ El servidor cuenta con dos archivos de configuraciones `config.json`  y `launch.
 El archivo `config.json` tiene como propósito permitir modificar ciertos parámetros internos de cada proceso que se ejecutará en el servidor. El mismo cuenta con el siguiente formato:
 
 
-```json
+```
 {
     "general": { //Configuración general a todos los procesos
         "mom_address": "amqp://rabbitmq" //Dirección del servicio de RabbitMQ
@@ -97,7 +97,7 @@ El archivo `config.json` tiene como propósito permitir modificar ciertos parám
 
 El archivo `launch.json` tiene como propósito modificar parámetros previos a la ejecución de los procesos del servidor, como pueden ser el número de procesos involucrados o variables de entorno. El mismo cuenta con el siguiente formato:
 
-```json
+```
 {
     "worker_number": { //Número de procesos a lanzar de cada tipo
         "admin": 1, //Proceso único
