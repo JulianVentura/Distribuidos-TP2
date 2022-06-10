@@ -77,7 +77,10 @@ func (self *MessageMiddleware) Finish() error {
 	}
 
 	logrus.Debugf("Closing connection")
-	self.connection.Close()
+
+	if err := self.connection.Close(); err != nil {
+		logrus.Errorf("Error closing amqp connection: %v", err)
+	}
 
 	return nil
 }

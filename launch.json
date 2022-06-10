@@ -1,0 +1,99 @@
+{
+    "worker_number": {
+        "admin": 1,
+        "post-score-avg-calculator": 1,
+        "best-sentiment-avg-downloader": 1,
+        "post-score-adder": 1,
+        "post-digestor": 2,
+        "post-above-avg-filter": 1,
+        "sentiment-joiner": 2,
+        "student-joiner": 1,
+        "comment-digestor": 2,
+        "post-sentiment-avg-calculator": 1,
+        "student-comment-filter": 2
+    },
+    "workers": {
+        "admin": {
+            "entrypoint": "/admin",
+            "dockerfile": "./server/admin/Dockerfile",
+            "environment": [
+                "PROCESS_GROUP=admin"
+            ]
+        },
+        "post-digestor": {
+            "entrypoint": "/post_digestor",
+            "dockerfile": "./server/post_digestor/Dockerfile",
+            "environment": [
+                "LOAD_BALANCE=sentiment-joiner",
+                "PROCESS_GROUP=post_digestor"
+            ]
+        },
+        "post-score-adder": {
+            "entrypoint": "/post_score_adder",
+            "dockerfile": "./server/post_score_adder/Dockerfile",
+            "environment": [
+                "PROCESS_GROUP=post_score_adder"
+            ]
+        },
+        "post-score-avg-calculator": {
+            "entrypoint": "/calculator",
+            "dockerfile": "./server/post_score_avg_calculator/Dockerfile",
+            "environment": [
+                "PROCESS_GROUP=post_score_avg_calculator"
+            ]
+        },
+        "post-above-avg-filter": {
+            "entrypoint": "/filter",
+            "dockerfile": "./server/post_above_avg_filter/Dockerfile",
+            "environment": [
+                "LOAD_BALANCE=student-joiner",
+                "PROCESS_GROUP=post_above_avg_filter"
+            ]
+        },
+        "comment-digestor": {
+            "entrypoint": "/comment_digestor",
+            "dockerfile": "./server/comment_digestor/Dockerfile",
+            "environment": [
+                "LOAD_BALANCE=post-sentiment-avg-calculator",
+                "PROCESS_GROUP=comment_digestor"
+            ]
+        },
+        "post-sentiment-avg-calculator": {
+            "entrypoint": "/calculator",
+            "dockerfile": "./server/post_sentiment_avg_calculator/Dockerfile",
+            "environment": [
+                "LOAD_BALANCE=sentiment-joiner", 
+                "PROCESS_GROUP=post_sentiment_avg_calculator"
+            ]
+        },
+        "sentiment-joiner": {
+            "entrypoint": "/joiner",
+            "dockerfile": "./server/joiner/Dockerfile",
+            "environment": [
+                "PROCESS_GROUP=sentiment_joiner"
+            ]
+        },
+        "student-joiner": {
+            "entrypoint": "/joiner",
+            "dockerfile": "./server/joiner/Dockerfile",
+            "environment": [
+                "PROCESS_GROUP=student_joiner"
+            ]
+        },
+        "student-comment-filter": {
+            "entrypoint": "/filter",
+            "dockerfile": "./server/student_comment_filter/Dockerfile",
+            "environment": [
+                "LOAD_BALANCE=student-joiner", 
+                "PROCESS_GROUP=student_comment_filter"
+            ]
+        },
+        "best-sentiment-avg-downloader": {
+            "entrypoint": "/downloader",
+            "dockerfile": "./server/best_sentiment_avg_downloader/Dockerfile",
+            "environment": [
+                "PROCESS_GROUP=best_sentiment_avg_downloader"
+            ]
+        }
+    }
+}

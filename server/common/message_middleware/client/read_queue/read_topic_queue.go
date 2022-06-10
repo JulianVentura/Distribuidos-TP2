@@ -37,7 +37,12 @@ func (self *ReadTopicQueue) Read() <-chan amqp.Delivery {
 }
 
 func (self *ReadTopicQueue) Close() {
-	self.channel.Close()
+	if err := self.channel.Cancel("consumer", false); err != nil {
+		log.Errorf("Error canceling amqp channel: %v", err)
+	}
+	if err := self.channel.Close(); err != nil {
+		log.Errorf("Error closing amqp channel: %v", err)
+	}
 }
 
 func (self *ReadTopicQueue) createQueue() error {

@@ -6,6 +6,7 @@ import (
 	"distribuidos/tp2/server/common/message_middleware/client/util"
 	"fmt"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 )
 
@@ -40,7 +41,12 @@ func (self *ReadWorkerQueue) Read() <-chan amqp.Delivery {
 }
 
 func (self *ReadWorkerQueue) Close() {
-	self.channel.Close()
+	if err := self.channel.Cancel("consumer", false); err != nil {
+		log.Errorf("Error canceling amqp channel: %v", err)
+	}
+	if err := self.channel.Close(); err != nil {
+		log.Errorf("Error closing amqp channel: %v", err)
+	}
 }
 
 func (self *ReadWorkerQueue) createQueue() error {

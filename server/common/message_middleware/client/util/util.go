@@ -56,13 +56,13 @@ func ConsumeQueue(
 	name string) (<-chan amqp.Delivery, error) {
 
 	return chann.Consume(
-		name,  // queue
-		"",    // consumer
-		true,  // auto-ack
-		false, // exclusive
-		false, // no-local
-		false, // no-wait
-		nil,   // args
+		name,       // queue
+		"consumer", // consumer
+		true,       // auto-ack
+		false,      // exclusive
+		false,      // no-local
+		false,      // no-wait
+		nil,        // args
 	)
 }
 

@@ -52,7 +52,9 @@ func (self *WriteWorkerQueue) Close() {
 		log.Errorf("Couldn't notify admin of closed queue: %v", err)
 		return
 	}
-	self.channel.Close()
+	if err := self.channel.Close(); err != nil {
+		log.Errorf("Error closing amqp channel: %v", err)
+	}
 }
 
 func (self *WriteWorkerQueue) createQueue() error {

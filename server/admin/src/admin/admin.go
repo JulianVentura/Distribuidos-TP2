@@ -165,6 +165,14 @@ func (self *Admin) receiveStreamFromClient(client *socket.TCPConnection) error {
 
 	postsReceived := uint(0)
 	commentsReceived := uint(0)
+	defer func() {
+		if !commentStreamFinished {
+			close(self.queues.Comments)
+		}
+		if !postStreamFinished {
+			close(self.queues.Posts)
+		}
+	}()
 Loop:
 	for {
 		select {
@@ -196,12 +204,6 @@ Loop:
 				close(self.queues.Comments)
 				commentStreamFinished = true
 			case *protocol.Error:
-				if !commentStreamFinished {
-					close(self.queues.Comments)
-				}
-				if !postStreamFinished {
-					close(self.queues.Posts)
-				}
 				return fmt.Errorf("Received error from client")
 			}
 

@@ -2,6 +2,7 @@
 # Tenemos que tener una idea de la identacion
 # Podemos tener una variable que pasemos a las funciones
 # con el numero de identacion a utilizar
+import json
 
 class Writer:
     def __init__(self, config, output_file):
@@ -76,21 +77,20 @@ class Writer:
         self.write(level+3, "condition: service_healthy")
         self.write(level+1, "volumes:")
         self.write(level+2, "- ./config.json:/config.json")
-        self.write(level+1, "links:")
-        self.write(level+2, "- rabbitmq")
+        # self.write(level+1, "links:")
+        # self.write(level+2, "- rabbitmq")
         self.write(level+1, "networks:")
         self.write(level+2, "- tp2_net")
 
     def write_service(self, level, name, config, id=None):
         entrypoint = config["entrypoint"]
         dockerfile = config["dockerfile"]
-        environment = config["environment"] 
+        environment = config["environment"][::]
         if id is not None:
             name = f"{name}{id}"
             environment.append(f"ID={id}") 
         else:
             environment.append(f"ID=0") 
-
         self.write(level, f"{name}:")
         self.write(level+1, "build:")
         self.write(level+2, "context: ./")
@@ -101,8 +101,8 @@ class Writer:
         self.write(level+1, "depends_on:")
         self.write(level+2, "rabbitmq:")
         self.write(level+3, "condition: service_healthy")
-        self.write(level+1, "links:")
-        self.write(level+2, "- rabbitmq")
+        # self.write(level+1, "links:")
+        # self.write(level+2, "- rabbitmq")
         self.write(level+1, "networks:")
         self.write(level+2, "- tp2_net")
         self.write(level+1, "volumes:")
@@ -121,109 +121,28 @@ class Writer:
         to_write = f"{space}{string}\n"
         self.output_file.write(to_write)
 
+def expand_load_balance(workers, worker_number):
+    for worker in workers.values():
+        if "environment" in worker:
+            for idx, env in enumerate(worker['environment']):
+                splits = str(env).split("=")
+                if splits[0] == 'LOAD_BALANCE':
+                    worker['environment'][idx] = f'LOAD_BALANCE={worker_number[splits[1]]}'
+                    break
+
+
 def main():
 
-    worker_number = {
-        "admin": 1,
-        "post-score-adder": 4,
-        "post-digestor": 4,
-        "post-score-avg-calculator": 1,
-        "post-above-avg-filter": 4,
-        "best-sentiment-avg-downloader": 1,
-        "sentiment-joiner": 4,
-        "student-joiner": 4,
-        "comment-digestor": 4,
-        "post-sentiment-avg-calculator": 4,
-        "student-comment-filter": 4,
-    }
-
-    config = {
-        "admin": {
-            "entrypoint": "/admin",
-            "dockerfile": "./server/admin/Dockerfile",
-            "environment": [
-                "PROCESS_GROUP=admin"
-            ]
-        },
-        "post-digestor": {
-            "entrypoint": "/post_digestor",
-            "dockerfile": "./server/post_digestor/Dockerfile",
-            "environment": [
-                f"LOAD_BALANCE={worker_number['sentiment-joiner']}",
-                "PROCESS_GROUP=post_digestor"
-            ]
-        },
-        "post-score-adder": {
-            "entrypoint": "/post_score_adder",
-            "dockerfile": "./server/post_score_adder/Dockerfile",
-            "environment": [
-                "PROCESS_GROUP=post_score_adder"
-            ]
-        },
-        "post-score-avg-calculator": {
-            "entrypoint": "/calculator",
-            "dockerfile": "./server/post_score_avg_calculator/Dockerfile",
-            "environment": [
-                "PROCESS_GROUP=post_score_avg_calculator"
-            ]
-        },
-        "post-above-avg-filter": {
-            "entrypoint": "/filter",
-            "dockerfile": "./server/post_above_avg_filter/Dockerfile",
-            "environment": [
-                f"LOAD_BALANCE={worker_number['student-joiner']}",
-                "PROCESS_GROUP=post_above_avg_filter"
-            ]
-        },
-        "comment-digestor": {
-            "entrypoint": "/comment_digestor",
-            "dockerfile": "./server/comment_digestor/Dockerfile",
-            "environment": [
-                f"LOAD_BALANCE={worker_number['post-sentiment-avg-calculator']}",
-                "PROCESS_GROUP=comment_digestor"
-            ]
-        },
-        "post-sentiment-avg-calculator": {
-            "entrypoint": "/calculator",
-            "dockerfile": "./server/post_sentiment_avg_calculator/Dockerfile",
-            "environment": [
-                f"LOAD_BALANCE={worker_number['sentiment-joiner']}", 
-                "PROCESS_GROUP=post_sentiment_avg_calculator"
-            ]
-        },
-        "sentiment-joiner": {
-            "entrypoint": "/joiner",
-            "dockerfile": "./server/joiner/Dockerfile",
-            "environment": [
-                "PROCESS_GROUP=sentiment_joiner"
-            ]
-        },
-        "student-joiner": {
-            "entrypoint": "/joiner",
-            "dockerfile": "./server/joiner/Dockerfile",
-            "environment": [
-                "PROCESS_GROUP=student_joiner"
-            ]
-        },
-        "student-comment-filter": {
-            "entrypoint": "/filter",
-            "dockerfile": "./server/student_comment_filter/Dockerfile",
-            "environment": [
-                f"LOAD_BALANCE={worker_number['student-joiner']}", 
-                "PROCESS_GROUP=student_comment_filter"
-            ]
-        },
-        "best-sentiment-avg-downloader": {
-            "entrypoint": "/downloader",
-            "dockerfile": "./server/best_sentiment_avg_downloader/Dockerfile",
-            "environment": [
-                "PROCESS_GROUP=best_sentiment_avg_downloader"
-            ]
-        },
-        "worker_number": worker_number
-    }
-
+    config_path = "./launch.json"
     output_path = "./docker-compose-server.yaml"
+
+    with open(config_path, "r") as json_file:
+        data = json.load(json_file)
+
+    expand_load_balance(data['workers'], data['worker_number'])
+
+    config = data['workers']
+    config['worker_number'] = data['worker_number']
 
     writer = Writer(config, output_path)
     writer.run()
