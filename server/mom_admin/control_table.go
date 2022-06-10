@@ -83,7 +83,7 @@ func (self *ControlTable) DecreaseWriter(name string) error {
 func (self *ControlTable) AnyPendingFinish() bool {
 	for k, v := range self.table {
 		if v.writers > 0 {
-			log.Infof("Queue %v hasn't finished yet", k)
+			log.Debugf("Queue %v hasn't finished yet", k)
 			return true
 		}
 	}

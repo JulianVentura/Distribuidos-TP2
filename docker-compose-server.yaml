@@ -42,6 +42,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      mom-admin:
+        condition: service_started
     networks:
       - tp2_net
     volumes:
@@ -60,6 +62,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      mom-admin:
+        condition: service_started
     networks:
       - tp2_net
     volumes:
@@ -78,6 +82,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      mom-admin:
+        condition: service_started
     networks:
       - tp2_net
     volumes:
@@ -96,6 +102,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      mom-admin:
+        condition: service_started
     networks:
       - tp2_net
     volumes:
@@ -114,6 +122,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      mom-admin:
+        condition: service_started
     networks:
       - tp2_net
     volumes:
@@ -133,6 +143,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      mom-admin:
+        condition: service_started
     networks:
       - tp2_net
     volumes:
@@ -152,6 +164,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      mom-admin:
+        condition: service_started
     networks:
       - tp2_net
     volumes:
@@ -171,6 +185,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      mom-admin:
+        condition: service_started
     networks:
       - tp2_net
     volumes:
@@ -189,6 +205,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      mom-admin:
+        condition: service_started
     networks:
       - tp2_net
     volumes:
@@ -207,6 +225,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      mom-admin:
+        condition: service_started
     networks:
       - tp2_net
     volumes:
@@ -225,6 +245,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      mom-admin:
+        condition: service_started
     networks:
       - tp2_net
     volumes:
@@ -244,6 +266,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      mom-admin:
+        condition: service_started
     networks:
       - tp2_net
     volumes:
@@ -263,6 +287,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      mom-admin:
+        condition: service_started
     networks:
       - tp2_net
     volumes:
@@ -282,6 +308,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      mom-admin:
+        condition: service_started
     networks:
       - tp2_net
     volumes:
@@ -301,6 +329,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      mom-admin:
+        condition: service_started
     networks:
       - tp2_net
     volumes:
