@@ -61,7 +61,7 @@ func CreateLoadBalanceCallback(
 	resultTopic := fmt.Sprintf("%v_result", processGroup)
 	return func(msg string) {
 		result, err := callback(msg)
-		if err == nil {
+		if err == nil && result != "" {
 			BalanceLoadSend(resultQueue, resultTopic, loadBalance, result)
 		}
 	}
@@ -73,7 +73,7 @@ func CreateCallback(
 
 	return func(msg string) {
 		result, err := callback(msg)
-		if err == nil {
+		if err == nil && result != "" {
 			resultQueue <- mom.Message{
 				Body: []byte(result),
 			}

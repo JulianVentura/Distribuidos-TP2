@@ -4,8 +4,6 @@ import (
 	"distribuidos/tp2/server/common/utils"
 	"fmt"
 	"strings"
-
-	log "github.com/sirupsen/logrus"
 )
 
 type StudentCommentFilter struct {
@@ -44,33 +42,8 @@ func (self *StudentCommentFilter) filter(input string) (string, error) {
 	}
 
 	if !wordFound {
-		return "", fmt.Errorf("Body does not have a special word")
+		return "", nil
 	}
 
-	log.Debugf("Written: %v", postId)
 	return postId, nil
-}
-
-func testFunction() {
-	lines := []string{
-		"id1,0.23,i went to that college and i learned a lot",
-		"id1,0.46",
-		"id5,0.5,i was a stuttdent in a different coliege. I didn't learn very much",
-		"id3,0.23,Well; I'm a professor at Cambridge University so I'm better than you",
-		"id6,-0.5,I haven't done anything; so...",
-	}
-
-	filter := NewFilter()
-	filter.Parser = utils.CustomParser(',')
-	results := make([]string, 0, 10)
-	for _, line := range lines {
-		result, err := filter.filter(line)
-		if err == nil {
-			results = append(results, result)
-		}
-	}
-
-	for _, r := range results {
-		fmt.Println(r)
-	}
 }

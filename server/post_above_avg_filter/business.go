@@ -35,31 +35,6 @@ func (self *PostAboveAvgFilter) work(input string) (string, error) {
 		r := []string{id, memeUrl}
 		return self.Parser.Write(r), nil
 	} else {
-		return "", fmt.Errorf("Data under average")
-	}
-}
-
-func testFunction() {
-	avg := float64(60)
-	lines := []string{
-		"a,url_a,41",
-		"b,b,43",
-		"c,b,23",
-		"d,b,116",
-		"e,b,75",
-	}
-
-	adder := NewFilter(avg)
-	adder.Parser = utils.CustomParser(',')
-
-	work := adder.work
-
-	for _, line := range lines {
-		v, e := work(line)
-		if e != nil {
-			fmt.Printf("%v: Invalid\n", line)
-		} else {
-			fmt.Printf("%v: %v\n", line, v)
-		}
+		return "", nil
 	}
 }

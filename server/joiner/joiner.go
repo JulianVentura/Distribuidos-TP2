@@ -59,7 +59,7 @@ func (self *Joiner) Join(input string) (string, error) {
 	id := splits[0]
 	body, exists := self.table[id]
 	if !exists {
-		return "", fmt.Errorf("entry do not exist")
+		return "", nil
 	}
 
 	result := make([]string, 0, 3)
@@ -80,43 +80,11 @@ func (self *Joiner) Join(input string) (string, error) {
 	if self.config.filterDuplicates {
 		_, exists := self.joined[r]
 		if exists {
-			return "", fmt.Errorf("entry do not exist")
+			return "", nil
 		} else {
 			self.joined[r] = true
 		}
 	}
 
 	return r, nil
-}
-
-func testFunction() {
-	toAdd := []string{
-		"id1,0.23,a",
-		"id2,0.1",
-		"id3,0.23",
-	}
-
-	toJoin := []string{
-		"id1,z",
-		"id1,b",
-		"id5,0.5,a",
-		"id2,0.23,a",
-		"id3,-0.5,a,b",
-	}
-
-	joiner := NewJoiner(JoinerConfig{keepId: false, baseBodySize: 1, toJoinBodySize: 0})
-	joiner.Parser = utils.CustomParser(',')
-
-	for _, line := range toAdd {
-		joiner.Add(line)
-	}
-
-	for _, line := range toJoin {
-		r, err := joiner.Join(line)
-		if err != nil {
-			fmt.Printf("%v: X\n", line)
-		} else {
-			fmt.Printf("%v\n", r)
-		}
-	}
 }

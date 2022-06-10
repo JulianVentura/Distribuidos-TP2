@@ -43,26 +43,3 @@ func (self *PostScoreAdder) getResult() string {
 	result := []string{fmt.Sprint(self.Sum), fmt.Sprint(self.Counter)}
 	return self.Parser.Write(result)
 }
-
-func testFunction() {
-	lines := []string{
-		"123,http://hola.png,14",
-		"123,http://hola.png,-2",
-		"123,http://hola.png,30",
-		"123,http://hola.png,150",
-	}
-
-	adder := NewCalculator()
-	adder.Parser = utils.CustomParser(',')
-	work := adder.add
-
-	for _, line := range lines {
-		work(line)
-	}
-
-	if adder.getResult() == "192,4" {
-		fmt.Println("OK")
-	} else {
-		fmt.Println("ERROR")
-	}
-}

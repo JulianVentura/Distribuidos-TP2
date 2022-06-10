@@ -53,28 +53,3 @@ func (self *SentimentAvgCalculator) getResult() []string {
 
 	return result
 }
-
-func testFunction() {
-	lines := []string{
-		"id1,0.23,a",
-		"id1,0.46,a",
-		"id5,0.5,a",
-		"id3,0.23,a",
-		"id5,-0.5,a",
-	}
-
-	adder := NewCalculator()
-	adder.Parser = utils.CustomParser(',')
-
-	work := adder.add
-
-	for _, line := range lines {
-		work(line)
-	}
-
-	result := adder.getResult()
-
-	for _, r := range result {
-		fmt.Printf("%v\n", r)
-	}
-}

@@ -78,35 +78,3 @@ func (self *CommentDigestor) getPostId(input string) (string, error) {
 
 	return split[4], nil
 }
-
-func testFunction() {
-	lines := []string{
-		//Correct
-		"comment,cag9p9z,2vegg,me_irl,False,1370912170,https://old.reddit.com/r/me_irl/comments/1g2h1a/,According to elsewhere on Reddit: Peggle 2,0.0,2",
-		//Correct
-		"comment,cag9p9z,2vegg,me_irl,False,1370912170,https://old.reddit.com/r/me_irl/comments/1g2h1a/me_irl/cag9p9z/,According to elsewhere on Reddit: Peggle 2,0.0,2",
-		//Correct
-		"comment,cqiw1bf,2s5ti,meirl,False,1429562851,https://old.reddit.com/r/meirl/comments/30241o/meirl/cqiw1bf/,Thanks me too,0.4404,1",
-		//Fewer values
-		"cqiw1bf,2s5ti,meirl,False,1429562851,https://old.reddit.com/r/meirl/comments/30241o/meirl/cqiw1bf/,Thanks me too,0.4404,1",
-		//Bad body
-		"comment,cqiw1bf,2s5ti,meirl,False,1429562851,https://old.reddit.com/r/meirl/comments/30241o/meirl/cqiw1bf/,,0.4404,1",
-		//Bad sentiment
-		"comment,cqiw1bf,2s5ti,meirl,False,1429562851,https://old.reddit.com/r/meirl/comments/30241o/meirl/cqiw1bf/,Thanks me too,,1",
-		//Bad permalink
-		"comment,cqiw1bf,2s5ti,meirl,False,1429562851,https://old.ret.com/r/meirl/comments/30241o/meirl/cqiw1bf/,Thanks me too,0.4404,1",
-	}
-
-	digestor := NewDigestor()
-	digestor.Parser = utils.CustomParser(',')
-
-	for id, line := range lines {
-		result, err := digestor.filter(line)
-		if err != nil {
-			fmt.Printf("Line %v: Invalid\n", id+1)
-		} else {
-			fmt.Printf("Line %v: Valid\n", id+1)
-			fmt.Printf("- (%v)\n", result)
-		}
-	}
-}

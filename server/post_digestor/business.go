@@ -71,8 +71,6 @@ func (self *PostDigestor) generateRegex() {
 	for i, format := range validFormats {
 		validFormats[i] = fmt.Sprintf("(%v)", format)
 	}
-	// meme_url_reg := `((https)|(http))?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)`
-	// meme_url_reg := `^((https)|(http))?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)\.` + `({valid_formats})` + `(\?.*)?$`
 	baseUrl := `^((https)|(http))?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)\.`
 	final := `(\?.*)?$`
 	memeUrlRegex := fmt.Sprintf("%v(%v)%v", baseUrl, strings.Join(validFormats, "|"), final)
@@ -84,36 +82,4 @@ func (self *PostDigestor) generateRegex() {
 	self.postIdRegex = regexp.MustCompile(postIdRegex)
 	self.memeUrlRegex = regexp.MustCompile(memeUrlRegex)
 	self.postScoreRegex = regexp.MustCompile(postScoreRegex)
-}
-
-func testFunction() {
-	lines := []string{
-		//Correct
-		"post,1258am,2vegg,me_irl,False,1351287079,https://old.reddit.com/r/me_irl/comments/1258am/me_irl/,i.imgur.com,http://i.imgur.com/Df6K0.gif,,me irl,10",
-		//Fewer values
-		"post,2vegg,me_irl,False,1351287079,https://old.reddit.com/r/me_irl/comments/1258am/me_irl/,i.imgur.com,http://i.imgur.com/Df6K0.gif,,me irl,10",
-		//Bad score
-		"post,1258am,2vegg,me_irl,False,1351287079,https://old.reddit.com/r/me_irl/comments/1258am/me_irl/,i.imgur.com,http://i.imgur.com/Df6K0.gif,,me irl,word",
-		//Empty Score
-		"post,1258am,2vegg,me_irl,False,1351287079,https://old.reddit.com/r/me_irl/comments/1258am/me_irl/,i.imgur.com,http://i.imgur.com/Df6K0.gif,,me irl,",
-		//Empty id
-		"post,,2vegg,me_irl,False,1351287079,https://old.reddit.com/r/me_irl/comments/1258am/me_irl/,i.imgur.com,http://i.imgur.com/Df6K0.gif,,me irl,10",
-		//Bad id
-		"post,@#$%@,2vegg,me_irl,False,1351287079,https://old.reddit.com/r/me_irl/comments/1258am/me_irl/,i.imgur.com,http://i.imgur.com/Df6K0.gif,,me irl,10",
-		//Empty meme url
-		"post,1258am,2vegg,me_irl,False,1351287079,https://old.reddit.com/r/me_irl/comments/1258am/me_irl/,i.imgur.com,,,me irl,10",
-	}
-
-	digestor := NewDigestor()
-	digestor.Parser = utils.CustomParser(',')
-
-	for id, line := range lines {
-		result, err := digestor.filter(line)
-		if err != nil {
-			fmt.Printf("Line %v: Invalid\n", id+1)
-		} else {
-			fmt.Printf("Line %v: Valid\n", id+1)
-			fmt.Printf("%v\n", result)
-		}
-	}
 }
