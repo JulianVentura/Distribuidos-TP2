@@ -4,6 +4,7 @@ import (
 	mom "distribuidos/tp2/server/common/message_middleware"
 	"fmt"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 )
 
@@ -40,6 +41,9 @@ func (self *ReadTopicQueue) Close() {
 }
 
 func (self *ReadTopicQueue) createQueue() error {
+	if self.config.Name != "" {
+		log.Warn("A name was provided for a topic read queue, it will be ignored")
+	}
 	if self.config.Topic == "" || self.config.Source == "" {
 		return fmt.Errorf("Error trying to create a read topic queue: topic or source not provided")
 	}
@@ -48,8 +52,9 @@ func (self *ReadTopicQueue) createQueue() error {
 		self.channel,
 		self.config.Source,
 		"topic",
-		self.config.Name,
-		self.config.Topic)
+		"",
+		self.config.Topic,
+		true)
 
 	if err != nil {
 		return fmt.Errorf("Error trying to create a read topic queue %v: %v", self.config.Source, err)

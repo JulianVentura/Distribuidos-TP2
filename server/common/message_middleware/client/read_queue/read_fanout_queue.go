@@ -4,6 +4,7 @@ import (
 	mom "distribuidos/tp2/server/common/message_middleware"
 	"fmt"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 )
 
@@ -40,6 +41,9 @@ func (self *ReadFanoutQueue) Close() {
 }
 
 func (self *ReadFanoutQueue) createQueue() error {
+	if self.config.Name != "" {
+		log.Warn("A name was provided for a fanout read queue, it will be ignored")
+	}
 	if self.config.Source == "" {
 		return fmt.Errorf("Error trying to create a read fanout queue: source not provided")
 	}
@@ -47,8 +51,9 @@ func (self *ReadFanoutQueue) createQueue() error {
 		self.channel,
 		self.config.Source,
 		"fanout",
-		self.config.Name,
-		"")
+		"",
+		"",
+		true)
 	if err != nil {
 		return fmt.Errorf("Error trying to create a read fanout queue %v: %v", self.config.Source, err)
 	}

@@ -2,6 +2,12 @@ package protocol
 
 import "encoding/binary"
 
+/*
+This library contains code which is similar to ./common/protocol/protocol.go (root)
+Instead of using that library a new implementation was choosen, because
+it has a slightly different API, it is more efficient, and more important, can be changed independently
+*/
+
 func encode32(number uint32, buffer []byte) uint {
 	binary.BigEndian.PutUint32(buffer, number)
 	return 4

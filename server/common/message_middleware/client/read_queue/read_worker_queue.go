@@ -76,7 +76,8 @@ func (self *ReadWorkerQueue) createBindQueue() error {
 		self.config.Source,
 		"topic",
 		self.config.Name,
-		self.config.Topic)
+		self.config.Topic,
+		false)
 	if err != nil {
 		return fmt.Errorf("Error trying to create a read worker queue %v: %v", self.config.Name, err)
 	}

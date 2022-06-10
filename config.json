@@ -106,7 +106,7 @@
     },
     "post_above_avg_filter": {
         "process_name": "Post Above Avg Filter",
-        "log_level": "debug",
+        "log_level": "info",
         "mom_msg_batch_timeout": "10ms",
         "mom_msg_batch_target_size": 1000000,
         "mom_channel_buffer_size": 1000,
@@ -160,7 +160,7 @@
         "queues": {
             "input": {
                 "name": "",
-                "class": "worker",
+                "class": "topic",
                 "topic": "comment_digestor_result.{id}",
                 "source": "comment_digestor_result",
                 "direction": "read"
@@ -185,14 +185,14 @@
         "queues": {
             "base_input": {
                 "name": "",
-                "class": "worker",
+                "class": "topic",
                 "topic": "post_digestor_result.{id}",
                 "source": "post_digestor_result",
                 "direction": "read"
             },
             "join_input": {
                 "name": "",
-                "class": "worker",
+                "class": "topic",
                 "topic": "post_sentiment_avg_calculator_result.{id}",
                 "source": "post_sentiment_avg_calculator_result",
                 "direction": "read"
@@ -217,14 +217,14 @@
         "queues": {
             "base_input": {
                 "name": "",
-                "class": "worker",
+                "class": "topic",
                 "topic": "post_above_avg_filter_result.{id}",
                 "source": "post_above_avg_filter_result",
                 "direction": "read"
             },
             "join_input": {
                 "name": "",
-                "class": "worker",
+                "class": "topic",
                 "topic": "student_comment_filter_result.{id}",
                 "source": "student_comment_filter_result",
                 "direction": "read"
