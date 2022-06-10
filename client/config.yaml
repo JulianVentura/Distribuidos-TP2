@@ -7,8 +7,8 @@ loop-period:
   comment: "100ns"
 
 files-path:
-  post: "./files/posts_small.csv"
-  comment: "./files/comments_small.csv"
+  post: "./files/posts_full.csv"
+  comment: "./files/comments_full.csv"
   sentiment-meme: "./files/sentiment_meme"
   school-memes: "./files/school_memes"
 

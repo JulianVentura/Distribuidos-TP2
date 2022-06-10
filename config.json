@@ -47,7 +47,7 @@
         "log_level": "info",
         "mom_msg_batch_timeout": "10ms",
         "mom_msg_batch_target_size": 1000000,
-        "mom_channel_buffer_size": 1000000,
+        "mom_channel_buffer_size": 10000,
         "queues": {
             "input": {
                 "name": "posts_q",
@@ -65,7 +65,7 @@
         "process_name": "Post Score Adder",
         "log_level": "info",
         "mom_msg_batch_timeout": "10ms",
-        "mom_msg_batch_target_size": 1000000,
+        "mom_msg_batch_target_size": 10000,
         "mom_channel_buffer_size": 1000,
         "queues": {
             "input": {
@@ -86,8 +86,8 @@
         "process_name": "Post Score Avg Calculator",
         "log_level": "info",
         "mom_msg_batch_timeout": "10ms",
-        "mom_msg_batch_target_size": 1000000,
-        "mom_channel_buffer_size": 1000,
+        "mom_msg_batch_target_size": 1000,
+        "mom_channel_buffer_size": 100,
         "queues": {
             "input": {
                 "name": "post_score_adder_result",
@@ -137,7 +137,7 @@
         "log_level": "info",
         "mom_msg_batch_timeout": "10ms",
         "mom_msg_batch_target_size": 1000000,
-        "mom_channel_buffer_size": 1000000,
+        "mom_channel_buffer_size": 1000,
         "queues": {
             "input": {
                 "name": "comments_q",

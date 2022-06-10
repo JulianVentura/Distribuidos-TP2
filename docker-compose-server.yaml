@@ -112,11 +112,11 @@ services:
       - PROCESS_GROUP=post_score_adder
       - ID=0
   
-  post-digestor0:
+  post-digestor:
     build:
       context: ./
       dockerfile: ./server/post_digestor/Dockerfile
-    container_name: post-digestor0
+    container_name: post-digestor
     entrypoint: /post_digestor
     restart: on-failure
     depends_on:
@@ -129,30 +129,9 @@ services:
     volumes:
       - ./config.json:/config.json
     environment:
-      - LOAD_BALANCE=2
+      - LOAD_BALANCE=1
       - PROCESS_GROUP=post_digestor
       - ID=0
-  
-  post-digestor1:
-    build:
-      context: ./
-      dockerfile: ./server/post_digestor/Dockerfile
-    container_name: post-digestor1
-    entrypoint: /post_digestor
-    restart: on-failure
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      mom-admin:
-        condition: service_started
-    networks:
-      - tp2_net
-    volumes:
-      - ./config.json:/config.json
-    environment:
-      - LOAD_BALANCE=2
-      - PROCESS_GROUP=post_digestor
-      - ID=1
   
   post-above-avg-filter:
     build:
@@ -175,11 +154,11 @@ services:
       - PROCESS_GROUP=post_above_avg_filter
       - ID=0
   
-  sentiment-joiner0:
+  sentiment-joiner:
     build:
       context: ./
       dockerfile: ./server/joiner/Dockerfile
-    container_name: sentiment-joiner0
+    container_name: sentiment-joiner
     entrypoint: /joiner
     restart: on-failure
     depends_on:
@@ -194,26 +173,6 @@ services:
     environment:
       - PROCESS_GROUP=sentiment_joiner
       - ID=0
-  
-  sentiment-joiner1:
-    build:
-      context: ./
-      dockerfile: ./server/joiner/Dockerfile
-    container_name: sentiment-joiner1
-    entrypoint: /joiner
-    restart: on-failure
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      mom-admin:
-        condition: service_started
-    networks:
-      - tp2_net
-    volumes:
-      - ./config.json:/config.json
-    environment:
-      - PROCESS_GROUP=sentiment_joiner
-      - ID=1
   
   student-joiner:
     build:
@@ -235,11 +194,11 @@ services:
       - PROCESS_GROUP=student_joiner
       - ID=0
   
-  comment-digestor0:
+  comment-digestor:
     build:
       context: ./
       dockerfile: ./server/comment_digestor/Dockerfile
-    container_name: comment-digestor0
+    container_name: comment-digestor
     entrypoint: /comment_digestor
     restart: on-failure
     depends_on:
@@ -255,27 +214,6 @@ services:
       - LOAD_BALANCE=1
       - PROCESS_GROUP=comment_digestor
       - ID=0
-  
-  comment-digestor1:
-    build:
-      context: ./
-      dockerfile: ./server/comment_digestor/Dockerfile
-    container_name: comment-digestor1
-    entrypoint: /comment_digestor
-    restart: on-failure
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      mom-admin:
-        condition: service_started
-    networks:
-      - tp2_net
-    volumes:
-      - ./config.json:/config.json
-    environment:
-      - LOAD_BALANCE=1
-      - PROCESS_GROUP=comment_digestor
-      - ID=1
   
   post-sentiment-avg-calculator:
     build:
@@ -294,15 +232,15 @@ services:
     volumes:
       - ./config.json:/config.json
     environment:
-      - LOAD_BALANCE=2
+      - LOAD_BALANCE=1
       - PROCESS_GROUP=post_sentiment_avg_calculator
       - ID=0
   
-  student-comment-filter0:
+  student-comment-filter:
     build:
       context: ./
       dockerfile: ./server/student_comment_filter/Dockerfile
-    container_name: student-comment-filter0
+    container_name: student-comment-filter
     entrypoint: /filter
     restart: on-failure
     depends_on:
@@ -318,27 +256,6 @@ services:
       - LOAD_BALANCE=1
       - PROCESS_GROUP=student_comment_filter
       - ID=0
-  
-  student-comment-filter1:
-    build:
-      context: ./
-      dockerfile: ./server/student_comment_filter/Dockerfile
-    container_name: student-comment-filter1
-    entrypoint: /filter
-    restart: on-failure
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      mom-admin:
-        condition: service_started
-    networks:
-      - tp2_net
-    volumes:
-      - ./config.json:/config.json
-    environment:
-      - LOAD_BALANCE=1
-      - PROCESS_GROUP=student_comment_filter
-      - ID=1
   
 networks:
   tp2_net:
