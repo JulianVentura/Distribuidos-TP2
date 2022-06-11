@@ -44,14 +44,14 @@ Loop:
 			if !more {
 				break Loop
 			}
-			batch := protocol.DecodeStringSlice(msg.Body)
+			batch := protocol.DecodeBytesSlice(msg.Body)
 			for _, m := range batch {
-				if m == "finish" {
+				if string(m) == "finish" {
 					log.Debugf("Reader has found finish message, closing...")
 					break Loop
 				}
 				self.output <- mom.Message{
-					Body:  []byte(m),
+					Body:  m,
 					Topic: msg.RoutingKey,
 				}
 			}

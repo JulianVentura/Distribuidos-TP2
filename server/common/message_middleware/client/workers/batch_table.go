@@ -3,27 +3,27 @@ package message_middleware
 const INITIAL_SIZE = 1000
 
 type BatchTable struct {
-	table         map[string][]string
+	table         map[string][][]byte
 	size          uint
 	sizeLimit     uint
-	flushCallback func(string, []string)
+	flushCallback func(string, [][]byte)
 }
 
-func createBatchTable(callback func(string, []string), sizeLimit uint) BatchTable {
+func createBatchTable(callback func(string, [][]byte), sizeLimit uint) BatchTable {
 	return BatchTable{
-		table:         make(map[string][]string, INITIAL_SIZE),
+		table:         make(map[string][][]byte, INITIAL_SIZE),
 		size:          0,
 		sizeLimit:     sizeLimit,
 		flushCallback: callback,
 	}
 }
 
-func (self *BatchTable) addEntry(key string, value string) {
+func (self *BatchTable) addEntry(key string, value []byte) {
 	_, exists := self.table[key]
 	if exists {
 		self.table[key] = append(self.table[key], value)
 	} else {
-		self.table[key] = []string{value}
+		self.table[key] = [][]byte{value}
 	}
 
 	self.size += uint(len(value))
@@ -46,6 +46,6 @@ func (self *BatchTable) flush() {
 		self.flushCallback(k, v)
 	}
 
-	self.table = make(map[string][]string, INITIAL_SIZE)
+	self.table = make(map[string][][]byte, INITIAL_SIZE)
 	self.size = 0
 }

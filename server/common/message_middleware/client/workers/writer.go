@@ -45,8 +45,8 @@ func StartWriteWorker(
 	return self
 }
 
-func (self *WriteWorker) sendCallback(topic string, messages []string) {
-	encoded := protocol.EncodeStringSlice(messages)
+func (self *WriteWorker) sendCallback(topic string, messages [][]byte) {
+	encoded := protocol.EncodeBytesSlice(messages)
 	if err := self.queue.Write(encoded, topic); err != nil {
 		log.Errorf("Error sending message on writer")
 		return
@@ -72,7 +72,7 @@ Loop:
 			if !more {
 				break Loop
 			}
-			self.batchTable.addEntry(msg.Topic, string(msg.Body))
+			self.batchTable.addEntry(msg.Topic, msg.Body)
 		case <-self.quit:
 			self.sendLastMessages()
 			break Loop
@@ -90,7 +90,7 @@ Loop:
 	for {
 		select {
 		case msg := <-self.input:
-			self.batchTable.addEntry(msg.Topic, string(msg.Body))
+			self.batchTable.addEntry(msg.Topic, msg.Body)
 		default:
 			break Loop
 		}

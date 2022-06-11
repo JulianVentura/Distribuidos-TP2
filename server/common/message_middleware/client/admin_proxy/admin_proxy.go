@@ -55,7 +55,8 @@ func (self *AdminProxy) notifyToAdmin(message string) error {
 		return nil
 	}
 	targetQueue := "admin_control"
-	encoded := protocol.EncodeStringSlice([]string{message})
+	msg := []byte(message)
+	encoded := protocol.EncodeBytesSlice([][]byte{msg})
 
 	err := util.Publish(encoded, "", targetQueue, self.channel)
 

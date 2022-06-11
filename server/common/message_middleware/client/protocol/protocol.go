@@ -17,45 +17,44 @@ func decode32(encoded []byte) (uint32, uint32) {
 	return binary.BigEndian.Uint32(encoded), 4
 }
 
-func encodeString(str string, buffer []byte) uint {
-	n := encode32(uint32(len(str)), buffer)
-	encodedStr := []byte(str)
-	copy(buffer[n:], encodedStr)
+func encodeSlice(slice []byte, buffer []byte) uint {
+	n := encode32(uint32(len(slice)), buffer)
+	copy(buffer[n:], slice)
 
-	return uint(len(str)) + n
+	return uint(len(slice)) + n
 }
 
-func decodeString(encoded []byte) (string, uint32) {
+func decodeSlice(encoded []byte) ([]byte, uint32) {
 
-	strLen, n := decode32(encoded)
-	str := string(encoded[n : strLen+n])
+	l, n := decode32(encoded)
+	slice := encoded[n : l+n]
 
-	return str, strLen + n
+	return slice, l + n
 }
 
-func EncodeStringSlice(slice []string) []byte {
+func EncodeBytesSlice(slice [][]byte) []byte {
 	l := uint32(len(slice))
 	sz := 0
-	for _, str := range slice {
-		sz += len(str) + 4
+	for _, a := range slice {
+		sz += len(a) + 4
 	}
-	encodedStrings := make([]byte, sz+4)
-	n := encode32(l, encodedStrings)
-	for _, str := range slice {
-		n += encodeString(str, encodedStrings[n:])
+	encoded := make([]byte, sz+4)
+	n := encode32(l, encoded)
+	for _, a := range slice {
+		n += encodeSlice(a, encoded[n:])
 	}
 
-	return encodedStrings
+	return encoded
 }
 
-func DecodeStringSlice(encoded []byte) []string {
+func DecodeBytesSlice(encoded []byte) [][]byte {
 	len, start := decode32(encoded)
-	slice := make([]string, len)
+	slice := make([][]byte, len)
 
 	byteCount := start
 	for i := uint32(0); i < len; i++ {
-		str, n := decodeString(encoded[byteCount:])
-		slice[i] = str
+		a, n := decodeSlice(encoded[byteCount:])
+		slice[i] = a
 		byteCount += n
 	}
 
