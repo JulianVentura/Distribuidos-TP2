@@ -28,10 +28,10 @@ type ClientConfig struct {
 }
 
 type Client struct {
-	server         *socket.TCPConnection
-	config         ClientConfig
-	postsSent      uint
-	commentsSent   uint
+	server *socket.TCPConnection
+	config ClientConfig
+	// postsSent      uint
+	// commentsSent   uint
 	toSend         chan protocol.Encodable
 	serverResponse chan protocol.Encodable
 	finished       *sync.WaitGroup
@@ -47,12 +47,12 @@ func Start(config ClientConfig) (*Client, error) {
 
 	log.Infof("Connection with server established")
 	self := &Client{
-		server:         server,
-		config:         config,
-		postsSent:      0,
-		commentsSent:   0,
+		server: server,
+		config: config,
+		// postsSent:      0,
+		// commentsSent:   0,
 		toSend:         make(chan protocol.Encodable, 100),
-		serverResponse: make(chan protocol.Encodable, 2),
+		serverResponse: make(chan protocol.Encodable, 10),
 		quitControl:    make([]chan bool, 0, 10),
 		finished:       &sync.WaitGroup{},
 	}
@@ -75,8 +75,8 @@ func Start(config ClientConfig) (*Client, error) {
 }
 
 func (self *Client) startReaders(config *ClientConfig) error {
-	postChann := make(chan string, 100)
-	commentChann := make(chan string, 100)
+	postChann := make(chan string, 50)
+	commentChann := make(chan string, 50)
 	postQuit := self.newQuit()
 	err := readFromFile(
 		config.FilePathPost,
@@ -110,12 +110,10 @@ func (self *Client) startReaders(config *ClientConfig) error {
 	}()
 
 	go func() {
+		postsSent := uint(0)
 		for m := range postChann {
 			log.Debugf("Sending post %s", m)
-			self.postsSent += 1
-			if self.postsSent%10000 == 0 {
-				log.Infof("Se enviaron %v posts", self.postsSent)
-			}
+			newEmit(&postsSent, "posts")
 			self.toSend <- &protocol.Post{
 				Post: m,
 			}
@@ -125,12 +123,10 @@ func (self *Client) startReaders(config *ClientConfig) error {
 	}()
 
 	go func() {
+		commentsSent := uint(0)
 		for m := range commentChann {
 			log.Debugf("Sending comment %s", m)
-			self.commentsSent += 1
-			if self.commentsSent%10000 == 0 {
-				log.Infof("Se enviaron %v comments", self.commentsSent)
-			}
+			newEmit(&commentsSent, "comments")
 			self.toSend <- &protocol.Comment{
 				Comment: m,
 			}
@@ -142,8 +138,15 @@ func (self *Client) startReaders(config *ClientConfig) error {
 	return nil
 }
 
+func newEmit(count *uint, name string) {
+	*count += 1
+	if *count%100000 == 0 {
+		log.Infof("Se enviaron %v %v", *count, name)
+	}
+}
+
 func (self *Client) newQuit() chan bool {
-	quit := make(chan bool, 1000)
+	quit := make(chan bool, 10)
 	self.quitControl = append(self.quitControl, quit)
 	return quit
 }

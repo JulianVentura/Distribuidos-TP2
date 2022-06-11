@@ -1,16 +1,13 @@
 {
     "worker_number": {
-        "admin": 1,
-        "post-score-avg-calculator": 1,
-        "best-sentiment-avg-downloader": 1,
         "post-score-adder": 1,
-        "post-digestor": 1,
-        "post-above-avg-filter": 1,
+        "post-digestor": 2,
+        "post-above-avg-filter": 2,
         "sentiment-joiner": 1,
         "student-joiner": 1,
-        "comment-digestor": 1,
+        "comment-digestor": 2,
         "post-sentiment-avg-calculator": 1,
-        "student-comment-filter": 1
+        "student-comment-filter": 2
     },
     "workers": {
         "admin": {

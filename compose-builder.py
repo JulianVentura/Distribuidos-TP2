@@ -140,7 +140,14 @@ def main():
     expand_load_balance(data['workers'], data['worker_number'])
 
     config = data['workers']
-    config['worker_number'] = data['worker_number']
+    worker_number = data['worker_number']
+
+    # Add groups which only have one process
+    worker_number['admin'] = 1
+    worker_number['post-score-avg-calculator'] = 1
+    worker_number['best-sentiment-avg-downloader'] = 1
+
+    config['worker_number'] = worker_number
 
     writer = Writer(config, output_path)
     writer.run()

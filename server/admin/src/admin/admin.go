@@ -76,7 +76,7 @@ func (self *Admin) Run() {
 
 func (self *Admin) clientWorker() {
 
-	//Esperar por un nuevo cliente
+	//Wait for a new client
 	client, err := self.waitForNewClient()
 	if err != nil {
 		log.Errorf("Error waiting for new client")
@@ -86,7 +86,7 @@ func (self *Admin) clientWorker() {
 	//We must close client connection at finish
 	defer client.Close()
 
-	//Recibir el stream de datos
+	//Receive data stream
 	err = self.receiveStreamFromClient(client)
 	if err != nil {
 		self.sendError(client)
@@ -94,7 +94,7 @@ func (self *Admin) clientWorker() {
 		return
 	}
 
-	//Enviar los resultados
+	//Send Computation results to client
 	err = self.sendResultsToClient(client)
 	if err != nil {
 		self.sendError(client)
@@ -220,7 +220,7 @@ Loop:
 
 func newArrival(count *uint, name string) {
 	*count += 1
-	if *count%10000 == 0 {
+	if *count%100000 == 0 {
 		log.Infof("Se recibieron %v %v", *count, name)
 	}
 }

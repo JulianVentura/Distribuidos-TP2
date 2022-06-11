@@ -100,9 +100,6 @@ El archivo `launch.json` tiene como propósito modificar parámetros previos a l
 ```
 {
     "worker_number": { //Número de procesos a lanzar de cada tipo
-        "admin": 1, //Proceso único
-        "post-score-avg-calculator": 1, //Proceso único
-        "best-sentiment-avg-downloader": 1, //Proceso único
         "post-score-adder": 1,
         "post-digestor": 2,
         "post-above-avg-filter": 1,
@@ -133,8 +130,7 @@ El archivo `launch.json` tiene como propósito modificar parámetros previos a l
  }
 ```
 
-
-Los procesos que han sido indicados como únicos no deben ser replicados. 
+Aquellos procesos que no pueden ser replicados han sido excluidos de la configuración de worker_number
 
 Para el procesamiento de este archivo se incluye un srcipt de python  `compose-builder.py` el cuál generará un `docker-compose-server.yaml` acorde a las configuraciones especificadas, que será utilizado en el comando `make server-up`  para la inicialización del servidor.
 
